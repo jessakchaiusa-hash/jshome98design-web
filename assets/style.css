@@ -453,6 +453,78 @@ h1, h2, h3, h4 {
   margin-bottom: 18px;
   color: var(--text-muted);
   font-size: 14px;
+  gap: 16px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.view-toggle-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-toggle-btn.active {
+  background: var(--green-800);
+  color: white;
+}
+
+.view-toggle-btn:not(.active):hover {
+  background: var(--green-100);
+  color: var(--green-800);
+}
+
+.map-note {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+#propertyMap {
+  width: 100%;
+  height: 640px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.map-popup {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.5;
+  min-width: 180px;
+}
+
+.map-popup b {
+  font-family: var(--font-display);
+  color: var(--green-900);
+  font-size: 14px;
+}
+
+.map-popup a {
+  color: var(--green-700);
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+@media (max-width: 860px) {
+  .result-meta { flex-wrap: wrap; }
+  #propertyMap { height: 460px; }
 }
 
 .property-grid {

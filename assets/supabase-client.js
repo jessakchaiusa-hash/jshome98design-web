@@ -57,6 +57,22 @@ async function fetchProvinceList() {
   return Array.from(set).sort();
 }
 
+// ดึงพิกัดทรัพย์สำหรับแสดงบนแผนที่ (เฉพาะที่มี lat/lng จริง)
+// จำกัดจำนวนไว้กันโหลดหนักเกินไป — ถ้ากรองแคบลง (เลือกจังหวัด/อำเภอ) จะได้ครบมากขึ้น
+async function fetchPropertiesForMap({ filters = {}, limit = 3000 } = {}) {
+  const params = buildFilterParams(filters);
+  const extra = "lat=neq.&lng=neq.";
+  const query = params ? `${params}&${extra}` : extra;
+
+  const res = await fetch(
+    `${REST_URL}?select=ghb_link,name,type,project,province,district,lat,lng&${query}`,
+    {
+      headers: baseHeaders({ Range: `0-${limit - 1}` }),
+    }
+  );
+  return res.json();
+}
+
 function buildFilterParams(filters) {
   const parts = [];
   if (filters.province) parts.push(`province=eq.${encodeURIComponent(filters.province)}`);
