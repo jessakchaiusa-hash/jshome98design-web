@@ -114,6 +114,24 @@ async function fetchProvinceList() {
   return Array.from(set).sort();
 }
 
+// ประเภททรัพย์ทั้งหมดตามหมวดหมู่ของ ธอส. (คงที่ ไม่ต้อง query ทุกครั้ง — เร็วกว่าและแม่นยำกว่า
+// การไล่ดึงจากข้อมูลทั้งตาราง เพราะมีทรัพย์บางประเภทน้อยกว่ามาก อาจตกหล่นถ้า query แบบ distinct ธรรมดา)
+async function fetchTypeList() {
+  return ["บ้าน", "คอนโด", "อาคารพาณิชย์", "ที่ดิน"];
+}
+
+// ดึงรายชื่ออำเภอ/เขตทั้งหมดที่มีทรัพย์อยู่จริงในจังหวัดที่เลือก
+async function fetchDistrictList(province) {
+  if (!province) return [];
+  const res = await fetch(
+    `${REST_URL}?select=district&province=eq.${encodeURIComponent(province)}&order=district.asc`,
+    { headers: baseHeaders() }
+  );
+  const rows = await res.json();
+  const set = new Set(rows.map((r) => r.district).filter(Boolean));
+  return Array.from(set).sort();
+}
+
 function buildFilterParams(filters, enabledProvinces = []) {
   const parts = [];
   if (filters.province) {
@@ -126,7 +144,8 @@ function buildFilterParams(filters, enabledProvinces = []) {
   if (filters.district) parts.push(`district=eq.${encodeURIComponent(filters.district)}`);
   if (filters.type) parts.push(`type=eq.${encodeURIComponent(filters.type)}`);
   if (filters.search) {
-    const q = encodeURIComponent(`%${filters.search}%`);
+    // ใช้ * แทน % สำหรับ wildcard (มาตรฐานของ PostgREST) เพื่อเลี่ยงปัญหาการเข้ารหัส % ผิดพลาด
+    const q = encodeURIComponent(`*${filters.search}*`);
     parts.push(`or=(name.ilike.${q},project.ilike.${q},address_full.ilike.${q})`);
   }
   return parts.join("&");
