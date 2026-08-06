@@ -49,14 +49,12 @@
       </div>
       <div class="field">
         <label for="fDistrict">อำเภอ/เขต</label>
-        <select id="fDistrict"><option value="">ทั้งหมด</option></select>
+        <select id="fDistrict" disabled title="เลือกจังหวัดก่อน"><option value="">ทั้งหมด</option></select>
       </div>
       <div class="field">
         <label for="fType">ประเภท</label>
         <select id="fType">
           <option value="">ทั้งหมด</option>
-          <option value="คอนโด">คอนโด</option>
-          <option value="บ้าน">บ้าน/ทาวน์เฮ้าส์</option>
         </select>
       </div>
       <div class="field" style="align-self:end;">
@@ -214,7 +212,52 @@
     } catch (e) {
       console.error("โหลดรายชื่อจังหวัดไม่สำเร็จ:", e);
     }
+
+    try {
+      const types = await fetchTypeList();
+      const selType = document.getElementById("fType");
+      types.forEach((t) => {
+        const opt = document.createElement("option");
+        opt.value = t; opt.textContent = t;
+        selType.appendChild(opt);
+      });
+    } catch (e) {
+      console.error("โหลดรายชื่อประเภททรัพย์ไม่สำเร็จ:", e);
+    }
+
+    await refreshDistrictOptions(state.filters.province);
   }
+
+  // โหลดรายชื่ออำเภอ/เขตใหม่ตามจังหวัดที่เลือก (เรียกตอนเปิดหน้าครั้งแรก และทุกครั้งที่เปลี่ยนจังหวัด)
+  async function refreshDistrictOptions(province) {
+    const selDistrict = document.getElementById("fDistrict");
+    const keepSelected = selDistrict.value;
+    selDistrict.innerHTML = '<option value="">ทั้งหมด</option>';
+
+    if (!province) {
+      selDistrict.disabled = true;
+      selDistrict.title = "เลือกจังหวัดก่อน";
+      return;
+    }
+
+    selDistrict.disabled = false;
+    selDistrict.title = "";
+    try {
+      const districts = await fetchDistrictList(province);
+      districts.forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = d; opt.textContent = d;
+        if (d === keepSelected) opt.selected = true;
+        selDistrict.appendChild(opt);
+      });
+    } catch (e) {
+      console.error("โหลดรายชื่ออำเภอ/เขตไม่สำเร็จ:", e);
+    }
+  }
+
+  document.getElementById("fProvince").addEventListener("change", (e) => {
+    refreshDistrictOptions(e.target.value);
+  });
 
   document.getElementById("fSubmit").addEventListener("click", () => {
     state.filters.search = document.getElementById("fSearch").value.trim();
