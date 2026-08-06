@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ค้นหาทรัพย์ | JS Home</title>
+<meta name="description" content="ค้นหาทรัพย์ NPA ธอส. ทั่วประเทศ กรองตามจังหวัด อำเภอ และประเภททรัพย์" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+      </span>
+      JS Home
+    </a>
+    <nav class="nav-links">
+      <a href="properties.html">ค้นหาทรัพย์</a>
+      <a href="index.html#how">ขั้นตอนการซื้อ</a>
+      <a href="index.html#about">เกี่ยวกับเรา</a>
+    </nav>
+    <a href="index.html" class="btn btn-ghost btn-sm">กลับหน้าแรก</a>
+  </div>
+</header>
+
+<section class="section-tight">
+  <div class="container">
+
+    <div class="section-head" style="margin-bottom:24px;">
+      <span class="section-eyebrow">ค้นหาทรัพย์</span>
+      <h2>ทรัพย์ NPA ธอส. ทั่วประเทศ</h2>
+    </div>
+
+    <div class="filter-bar">
+      <div class="field">
+        <label for="fSearch">ค้นหา</label>
+        <input id="fSearch" type="text" placeholder="ชื่อโครงการ, ที่อยู่..." />
+      </div>
+      <div class="field">
+        <label for="fProvince">จังหวัด</label>
+        <select id="fProvince"><option value="">ทั้งหมด</option></select>
+      </div>
+      <div class="field">
+        <label for="fDistrict">อำเภอ/เขต</label>
+        <select id="fDistrict"><option value="">ทั้งหมด</option></select>
+      </div>
+      <div class="field">
+        <label for="fType">ประเภท</label>
+        <select id="fType">
+          <option value="">ทั้งหมด</option>
+          <option value="คอนโด">คอนโด</option>
+          <option value="บ้าน">บ้าน/ทาวน์เฮ้าส์</option>
+        </select>
+      </div>
+      <div class="field" style="align-self:end;">
+        <button class="btn btn-primary" id="fSubmit" style="width:100%;">ค้นหา</button>
+      </div>
+    </div>
+
+    <div class="result-meta">
+      <span id="resultCount">กำลังโหลด...</span>
+      <span id="pageInfo"></span>
+    </div>
+
+    <div class="property-grid" id="propertyGrid">
+      <!-- skeleton loading -->
+      <div class="property-card"><div class="property-thumb skeleton"></div><div class="property-body"><div class="skeleton" style="height:16px;width:80%;border-radius:6px;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:60%;border-radius:6px;"></div></div></div>
+      <div class="property-card"><div class="property-thumb skeleton"></div><div class="property-body"><div class="skeleton" style="height:16px;width:80%;border-radius:6px;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:60%;border-radius:6px;"></div></div></div>
+      <div class="property-card"><div class="property-thumb skeleton"></div><div class="property-body"><div class="skeleton" style="height:16px;width:80%;border-radius:6px;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:60%;border-radius:6px;"></div></div></div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-row">
+      <div class="brand" style="font-size:16px;">JS Home</div>
+      <div>© 2026 JS Home · ราคาและรายละเอียดที่ถูกต้องให้ยึดตามหน้าเว็บ ธอส. เสมอ</div>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/supabase-client.js"></script>
+<script>
+  const PAGE_SIZE = 24;
+  let state = {
+    page: 1,
+    filters: { search: "", province: "", district: "", type: "" },
+  };
+
+  const grid = document.getElementById("propertyGrid");
+  const resultCount = document.getElementById("resultCount");
+  const pageInfo = document.getElementById("pageInfo");
+  const pagination = document.getElementById("pagination");
+
+  function readFiltersFromURL() {
+    const params = new URLSearchParams(location.search);
+    state.filters.province = params.get("province") || "";
+  }
+
+  function noImage(el) {
+    el.onerror = null;
+    el.src = "data:image/svg+xml;utf8," + encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='%23D8F3DC'/></svg>`
+    );
+  }
+
+  function renderCard(p) {
+    const img = p.img || "";
+    return `
+      <a class="property-card" href="${p.ghb_link}" target="_blank" rel="noopener">
+        <div class="property-thumb">
+          <span class="property-type-tag">${p.type || "ทรัพย์"}</span>
+          <img src="${img}" alt="${p.name || ""}" loading="lazy"
+               onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%25' height='100%25' fill='%23D8F3DC'/></svg>`)}'" />
+        </div>
+        <div class="property-body">
+          <h4>${p.name || "ไม่ระบุชื่อทรัพย์"}</h4>
+          <div class="property-loc">📍 ${p.district || ""} ${p.province || ""}</div>
+          <div class="property-meta">
+            ${p.area ? `<span>📐 ${p.area}</span>` : ""}
+            ${p.floor ? `<span>🏢 ${p.floor}</span>` : ""}
+          </div>
+          <div class="property-cta">ดูรายละเอียด-ราคาที่ ธอส. →</div>
+        </div>
+      </a>
+    `;
+  }
+
+  async function loadProperties() {
+    grid.innerHTML = Array(6).fill(
+      `<div class="property-card"><div class="property-thumb skeleton"></div><div class="property-body"><div class="skeleton" style="height:16px;width:80%;border-radius:6px;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:60%;border-radius:6px;"></div></div></div>`
+    ).join("");
+    resultCount.textContent = "กำลังโหลด...";
+
+    try {
+      const { data, total } = await fetchProperties({
+        filters: state.filters,
+        page: state.page,
+        pageSize: PAGE_SIZE,
+      });
+
+      if (!data.length) {
+        grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1;">ไม่พบทรัพย์ที่ตรงกับเงื่อนไข ลองปรับตัวกรองใหม่</div>`;
+        resultCount.textContent = "พบ 0 รายการ";
+        pageInfo.textContent = "";
+        pagination.innerHTML = "";
+        return;
+      }
+
+      grid.innerHTML = data.map(renderCard).join("");
+      resultCount.textContent = `พบ ${total.toLocaleString("th-TH")} รายการ`;
+
+      const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
+      pageInfo.textContent = `หน้า ${state.page} จาก ${totalPages.toLocaleString("th-TH")}`;
+      renderPagination(totalPages);
+    } catch (e) {
+      grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1;">โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง</div>`;
+      resultCount.textContent = "";
+      console.error(e);
+    }
+  }
+
+  function renderPagination(totalPages) {
+    pagination.innerHTML = "";
+    const mkBtn = (label, page, disabled = false, active = false) => {
+      const b = document.createElement("button");
+      b.className = "page-btn";
+      b.textContent = label;
+      b.disabled = disabled;
+      if (active) { b.style.background = "var(--green-800)"; b.style.color = "white"; b.style.borderColor = "var(--green-800)"; }
+      b.onclick = () => { state.page = page; loadProperties(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+      return b;
+    };
+    pagination.appendChild(mkBtn("← ก่อนหน้า", state.page - 1, state.page <= 1));
+    pagination.appendChild(mkBtn(String(state.page), state.page, false, true));
+    if (state.page < totalPages) pagination.appendChild(mkBtn(String(state.page + 1), state.page + 1));
+    pagination.appendChild(mkBtn("ถัดไป →", state.page + 1, state.page >= totalPages));
+  }
+
+  async function initFilters() {
+    try {
+      const provinces = await fetchProvinceList();
+      const sel = document.getElementById("fProvince");
+      provinces.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p; opt.textContent = p;
+        if (p === state.filters.province) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    } catch (e) {
+      console.error("โหลดรายชื่อจังหวัดไม่สำเร็จ:", e);
+    }
+  }
+
+  document.getElementById("fSubmit").addEventListener("click", () => {
+    state.filters.search = document.getElementById("fSearch").value.trim();
+    state.filters.province = document.getElementById("fProvince").value;
+    state.filters.district = document.getElementById("fDistrict").value.trim();
+    state.filters.type = document.getElementById("fType").value;
+    state.page = 1;
+    loadProperties();
+  });
+
+  document.getElementById("fSearch").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("fSubmit").click();
+  });
+
+  readFiltersFromURL();
+  initFilters().then(loadProperties);
+</script>
+
+</body>
+</html>
