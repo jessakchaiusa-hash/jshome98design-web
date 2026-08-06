@@ -10,9 +10,33 @@ function baseHeaders(extra = {}) {
   };
 }
 
+// ===== การตั้งค่าโซน (เปิด/ปิดจังหวัดที่ให้แสดงบนเว็บ) =====
+// อ่านจากตาราง zone_settings ใน Supabase — Captain ปรับได้เองผ่าน Table Editor
+// โดยไม่ต้องแก้โค้ดเลย แค่ติ๊ก enabled = true/false รายจังหวัด
+// ถ้ายังไม่ได้สร้างตารางนี้ ระบบจะถือว่า "ไม่จำกัดโซน" (แสดงทุกจังหวัดตามปกติ)
+let _cachedEnabledProvinces = null;
+
+async function getEnabledProvinces() {
+  if (_cachedEnabledProvinces !== null) return _cachedEnabledProvinces;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/zone_settings?select=province&enabled=eq.true&order=province.asc`,
+      { headers: baseHeaders() }
+    );
+    if (!res.ok) throw new Error("zone_settings table not found");
+    const rows = await res.json();
+    _cachedEnabledProvinces = rows.map((r) => r.province);
+  } catch (e) {
+    console.warn("โหลดการตั้งค่าโซนไม่สำเร็จ ใช้ค่าเริ่มต้น (แสดงทุกจังหวัด):", e);
+    _cachedEnabledProvinces = [];
+  }
+  return _cachedEnabledProvinces;
+}
+
 // นับจำนวนทรัพย์ทั้งหมด (หรือกรองตามเงื่อนไข) — ใช้ HEAD request + Prefer count=exact เร็วและเบา
 async function fetchPropertyCount(filters = {}) {
-  const params = buildFilterParams(filters);
+  const enabled = await getEnabledProvinces();
+  const params = buildFilterParams(filters, enabled);
   const res = await fetch(`${REST_URL}?select=id&${params}`, {
     method: "HEAD",
     headers: baseHeaders({ Prefer: "count=exact" }),
@@ -27,7 +51,8 @@ async function fetchPropertyCount(filters = {}) {
 async function fetchProperties({ filters = {}, page = 1, pageSize = 24 } = {}) {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
-  const params = buildFilterParams(filters);
+  const enabled = await getEnabledProvinces();
+  const params = buildFilterParams(filters, enabled);
 
   const res = await fetch(
     `${REST_URL}?select=*&order=synced_at.desc&${params}`,
@@ -45,9 +70,41 @@ async function fetchProperties({ filters = {}, page = 1, pageSize = 24 } = {}) {
   return { data, total };
 }
 
-// ดึงรายชื่อจังหวัดที่มีทรัพย์อยู่จริง พร้อมจำนวน (ใช้ RPC ฝั่ง Postgres จะเร็วกว่า
-// แต่ทำแบบง่ายด้วย distinct query ผ่าน REST ได้เช่นกันสำหรับจำนวนจังหวัดที่ไม่เยอะมาก)
+// ดึงพิกัดทรัพย์สำหรับแสดงบนแผนที่ (เฉพาะที่มี lat/lng จริง)
+// ดึงแบบแบ่งหน้าอัตโนมัติ (ทีละ 1000 แถว) เพื่อไม่ให้ติดขีดจำกัด "Max Rows" ของ Supabase
+async function fetchPropertiesForMap({ filters = {}, limit = 20000 } = {}) {
+  const enabled = await getEnabledProvinces();
+  const params = buildFilterParams(filters, enabled);
+  const extra = "lat=neq.&lng=neq.";
+  const query = params ? `${params}&${extra}` : extra;
+
+  const PAGE_SIZE = 1000; // เท่ากับ (หรือน้อยกว่า) ค่า Max Rows ของ Supabase
+  let allRows = [];
+  let from = 0;
+
+  while (allRows.length < limit) {
+    const to = Math.min(from + PAGE_SIZE - 1, limit - 1);
+    const res = await fetch(
+      `${REST_URL}?select=ghb_link,name,type,project,province,district,lat,lng&${query}`,
+      { headers: baseHeaders({ Range: `${from}-${to}` }) }
+    );
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) break;
+
+    allRows = allRows.concat(rows);
+    if (rows.length < PAGE_SIZE) break; // หมดข้อมูลแล้ว
+    from += PAGE_SIZE;
+  }
+
+  return allRows;
+}
+
+// ดึงรายชื่อจังหวัดที่ "เปิดใช้งาน" ไว้ให้แสดงบนเว็บ (ใช้กับ dropdown filter และ pills หน้าแรก)
+// ถ้ายังไม่ได้สร้างตาราง zone_settings จะ fallback ไปดึงจากทรัพย์ทั้งหมดแทนอัตโนมัติ
 async function fetchProvinceList() {
+  const enabled = await getEnabledProvinces();
+  if (enabled.length > 0) return enabled;
+
   const res = await fetch(
     `${REST_URL}?select=province&order=province.asc`,
     { headers: baseHeaders() }
@@ -57,29 +114,18 @@ async function fetchProvinceList() {
   return Array.from(set).sort();
 }
 
-// ดึงพิกัดทรัพย์สำหรับแสดงบนแผนที่ (เฉพาะที่มี lat/lng จริง)
-// จำกัดจำนวนไว้กันโหลดหนักเกินไป — ถ้ากรองแคบลง (เลือกจังหวัด/อำเภอ) จะได้ครบมากขึ้น
-async function fetchPropertiesForMap({ filters = {}, limit = 3000 } = {}) {
-  const params = buildFilterParams(filters);
-  const extra = "lat=neq.&lng=neq.";
-  const query = params ? `${params}&${extra}` : extra;
-
-  const res = await fetch(
-    `${REST_URL}?select=ghb_link,name,type,project,province,district,lat,lng&${query}`,
-    {
-      headers: baseHeaders({ Range: `0-${limit - 1}` }),
-    }
-  );
-  return res.json();
-}
-
-function buildFilterParams(filters) {
+function buildFilterParams(filters, enabledProvinces = []) {
   const parts = [];
-  if (filters.province) parts.push(`province=eq.${encodeURIComponent(filters.province)}`);
+  if (filters.province) {
+    parts.push(`province=eq.${encodeURIComponent(filters.province)}`);
+  } else if (enabledProvinces.length > 0) {
+    // ผู้ใช้ไม่ได้เลือกจังหวัดเจาะจง → จำกัดตามรายชื่อจังหวัดที่ "เปิดใช้งาน" ไว้เท่านั้น
+    const list = enabledProvinces.map((p) => encodeURIComponent(p)).join(",");
+    parts.push(`province=in.(${list})`);
+  }
   if (filters.district) parts.push(`district=eq.${encodeURIComponent(filters.district)}`);
   if (filters.type) parts.push(`type=eq.${encodeURIComponent(filters.type)}`);
   if (filters.search) {
-    // ค้นหาจากชื่อประกาศ, โครงการ, หรือที่อยู่
     const q = encodeURIComponent(`%${filters.search}%`);
     parts.push(`or=(name.ilike.${q},project.ilike.${q},address_full.ilike.${q})`);
   }
