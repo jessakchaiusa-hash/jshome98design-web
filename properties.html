@@ -7,6 +7,9 @@
 <meta name="description" content="ค้นหาทรัพย์ NPA ธอส. ทั่วประเทศ กรองตามจังหวัด อำเภอ และประเภททรัพย์" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -64,6 +67,10 @@
 
     <div class="result-meta">
       <span id="resultCount">กำลังโหลด...</span>
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="btnViewList" type="button">📋 รายการ</button>
+        <button class="view-toggle-btn" id="btnViewMap" type="button">🗺️ แผนที่</button>
+      </div>
       <span id="pageInfo"></span>
     </div>
 
@@ -75,6 +82,12 @@
     </div>
 
     <div class="pagination" id="pagination"></div>
+
+    <!-- แผนที่ (ซ่อนไว้ก่อน สลับด้วยปุ่ม) -->
+    <div id="mapView" style="display:none;">
+      <div id="mapNote" class="map-note"></div>
+      <div id="propertyMap"></div>
+    </div>
 
   </div>
 </section>
@@ -217,7 +230,101 @@
 
   readFiltersFromURL();
   initFilters().then(loadProperties);
+
+  // ===== มุมมองแผนที่ =====
+  let leafletMap = null;
+  let markerClusterGroup = null;
+  let mapLoadedForFilters = null; // เก็บ signature ของ filter ล่าสุดที่โหลดแผนที่ไปแล้ว
+
+  const btnViewList = document.getElementById("btnViewList");
+  const btnViewMap = document.getElementById("btnViewMap");
+  const mapView = document.getElementById("mapView");
+  const mapNote = document.getElementById("mapNote");
+
+  function filterSignature() {
+    return JSON.stringify(state.filters);
+  }
+
+  function initMapIfNeeded() {
+    if (leafletMap) return;
+    leafletMap = L.map("propertyMap").setView([13.7563, 100.5018], 6); // ศูนย์กลางประเทศไทยคร่าวๆ
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+    }).addTo(leafletMap);
+    markerClusterGroup = L.markerClusterGroup();
+    leafletMap.addLayer(markerClusterGroup);
+  }
+
+  async function loadMapMarkers() {
+    initMapIfNeeded();
+    if (mapLoadedForFilters === filterSignature()) return; // filter เดิม ไม่ต้องโหลดซ้ำ
+
+    mapNote.textContent = "กำลังโหลดตำแหน่งทรัพย์บนแผนที่...";
+    markerClusterGroup.clearLayers();
+
+    try {
+      const rows = await fetchPropertiesForMap({ filters: state.filters, limit: 3000 });
+      const bounds = [];
+
+      rows.forEach((p) => {
+        const lat = parseFloat(p.lat);
+        const lng = parseFloat(p.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const marker = L.marker([lat, lng]);
+        marker.bindPopup(`
+          <div class="map-popup">
+            <b>${p.name || "ไม่ระบุชื่อ"}</b><br/>
+            <span>${p.type || ""} · ${p.district || ""} ${p.province || ""}</span><br/>
+            <a href="${p.ghb_link}" target="_blank" rel="noopener">ดูรายละเอียด-ราคาที่ ธอส. →</a>
+          </div>
+        `);
+        markerClusterGroup.addLayer(marker);
+        bounds.push([lat, lng]);
+      });
+
+      if (bounds.length) {
+        leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+      }
+
+      const cappedNote = rows.length >= 3000
+        ? ` (แสดงสูงสุด 3,000 จุดแรก — ลองกรองจังหวัด/อำเภอให้แคบลงเพื่อดูครบทุกจุด)`
+        : "";
+      mapNote.textContent = `แสดง ${rows.length.toLocaleString("th-TH")} ตำแหน่งบนแผนที่${cappedNote}`;
+      mapLoadedForFilters = filterSignature();
+    } catch (e) {
+      mapNote.textContent = "โหลดตำแหน่งบนแผนที่ไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง";
+      console.error(e);
+    }
+  }
+
+  btnViewList.addEventListener("click", () => {
+    btnViewList.classList.add("active");
+    btnViewMap.classList.remove("active");
+    mapView.style.display = "none";
+    document.getElementById("propertyGrid").style.display = "";
+    document.getElementById("pagination").style.display = "";
+  });
+
+  btnViewMap.addEventListener("click", () => {
+    btnViewMap.classList.add("active");
+    btnViewList.classList.remove("active");
+    mapView.style.display = "block";
+    document.getElementById("propertyGrid").style.display = "none";
+    document.getElementById("pagination").style.display = "none";
+    loadMapMarkers();
+    setTimeout(() => leafletMap && leafletMap.invalidateSize(), 100);
+  });
+
+  // ถ้าค้นหา/กรองใหม่ตอนอยู่ในมุมมองแผนที่ ให้โหลดหมุดใหม่ด้วย
+  document.getElementById("fSubmit").addEventListener("click", () => {
+    if (mapView.style.display === "block") loadMapMarkers();
+  });
 </script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
 </body>
 </html>
