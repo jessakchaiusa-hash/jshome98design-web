@@ -102,6 +102,8 @@
 
 <script src="assets/config.js"></script>
 <script src="assets/supabase-client.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
   const PAGE_SIZE = 24;
   let state = {
@@ -264,16 +266,17 @@
       },
     });
     leafletMap.addLayer(markerClusterGroup);
-  }
 
-  // ไอคอนหมุดสีส้ม (ตามโทนแบรนด์) แทนหมุดสีน้ำเงินเริ่มต้นของ Leaflet
-  const orangeIcon = L.divIcon({
-    className: "orange-pin-wrap",
-    html: '<div class="orange-pin"></div>',
-    iconSize: [22, 22],
-    iconAnchor: [11, 20],
-    popupAnchor: [0, -18],
-  });
+    // ไอคอนหมุดสีส้ม (ตามโทนแบรนด์) แทนหมุดสีน้ำเงินเริ่มต้นของ Leaflet
+    // สร้างตรงนี้ (หลังแน่ใจว่า L โหลดเสร็จแล้ว) กันปัญหาลำดับการโหลดสคริปต์
+    window._orangeIcon = L.divIcon({
+      className: "orange-pin-wrap",
+      html: '<div class="orange-pin"></div>',
+      iconSize: [22, 22],
+      iconAnchor: [11, 20],
+      popupAnchor: [0, -18],
+    });
+  }
 
   async function loadMapMarkers() {
     initMapIfNeeded();
@@ -291,7 +294,7 @@
         const lng = parseFloat(p.lng);
         if (isNaN(lat) || isNaN(lng)) return;
 
-        const marker = L.marker([lat, lng], { icon: orangeIcon });
+        const marker = L.marker([lat, lng], { icon: window._orangeIcon });
         marker.bindPopup(`
           <div class="map-popup">
             <b>${p.name || "ไม่ระบุชื่อ"}</b><br/>
@@ -341,9 +344,6 @@
     if (mapView.style.display === "block") loadMapMarkers();
   });
 </script>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
 </body>
 </html>
