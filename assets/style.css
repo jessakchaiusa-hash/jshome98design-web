@@ -1,18 +1,21 @@
-/* ===== JS Home — Design Tokens ===== */
+/* ===== JS Home — Design Tokens (อัปเดตตามโลโก้แบรนด์) ===== */
 :root {
-  --green-900: #10281E;
-  --green-800: #1B4332;
-  --green-700: #2D6A4F;
-  --green-500: #52B788;
-  --green-300: #95D5B2;
-  --green-100: #D8F3DC;
-  --bg: #F7FAF7;
+  --green-900: #163B33;
+  --green-800: #2D5B50;
+  --green-700: #386F62;
+  --green-500: #4E9384;
+  --green-300: #8DC0B4;
+  --green-100: #E3F0EC;
+  --orange-700: #D97C0C;
+  --orange-500: #F7941D;
+  --orange-100: #FDEBD3;
+  --bg: #F8FAF9;
   --bg-panel: #FFFFFF;
   --text: #16241D;
   --text-muted: #5B6B62;
   --border: #E1EBE3;
   --radius: 14px;
-  --shadow: 0 4px 24px rgba(16, 40, 30, 0.06);
+  --shadow: 0 4px 24px rgba(22, 59, 51, 0.08);
   --font-display: "Prompt", "Noto Sans Thai", sans-serif;
   --font-body: "Sarabun", "Noto Sans Thai", sans-serif;
 }
@@ -75,17 +78,17 @@ h1, h2, h3, h4 {
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(155deg, var(--green-700), var(--green-500));
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  overflow: hidden;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.brand-mark svg { width: 20px; height: 20px; }
+.brand-mark img { width: 100%; height: 100%; object-fit: cover; }
 
 .nav-links {
   display: flex;
@@ -163,7 +166,7 @@ h1, h2, h3, h4 {
 
 .eyebrow .dot {
   width: 7px; height: 7px; border-radius: 50%;
-  background: var(--green-500);
+  background: var(--orange-500);
   animation: pulse 1.8s infinite;
 }
 
@@ -178,7 +181,7 @@ h1, h2, h3, h4 {
   color: var(--green-900);
 }
 
-.hero h1 span { color: var(--green-500); }
+.hero h1 span { color: var(--orange-500); }
 
 .hero p.lead {
   font-size: 18px;
@@ -234,7 +237,7 @@ h1, h2, h3, h4 {
   position: absolute;
   inset: -40% -20% auto auto;
   width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(255,255,255,0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(247, 148, 29, 0.28), transparent 70%);
 }
 
 .hero-visual-label {
@@ -361,8 +364,8 @@ h1, h2, h3, h4 {
 }
 
 .pill:hover {
-  border-color: var(--green-500);
-  background: var(--green-100);
+  border-color: var(--orange-500);
+  background: var(--orange-100);
   color: var(--green-800);
 }
 
@@ -442,7 +445,7 @@ h1, h2, h3, h4 {
 }
 
 .field input:focus, .field select:focus {
-  outline: 2px solid var(--green-500);
+  outline: 2px solid var(--orange-500);
   outline-offset: 1px;
 }
 
@@ -520,6 +523,32 @@ h1, h2, h3, h4 {
   font-weight: 600;
   display: inline-block;
   margin-top: 4px;
+}
+
+/* หมุดสีส้มตามโทนแบรนด์ (แทนหมุดน้ำเงินเริ่มต้นของ Leaflet) */
+.orange-pin-wrap { background: transparent; border: none; }
+.orange-pin {
+  width: 20px;
+  height: 20px;
+  background: var(--orange-500);
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+
+/* จุดกลุ่ม (cluster) สีส้ม เข้มขึ้นตามจำนวนทรัพย์ในกลุ่ม */
+.cluster-pin-wrap { background: transparent; border: none; }
+.cluster-pin {
+  background: var(--orange-500);
+  color: white;
+  border: 3px solid white;
+  border-radius: 50%;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 3px 10px rgba(217, 124, 12, 0.45);
 }
 
 @media (max-width: 860px) {
@@ -645,7 +674,7 @@ h1, h2, h3, h4 {
 }
 
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-btn:not(:disabled):hover { border-color: var(--green-500); }
+.page-btn:not(:disabled):hover { border-color: var(--orange-500); }
 
 .skeleton {
   background: linear-gradient(90deg, var(--green-100) 25%, #eef7f0 37%, var(--green-100) 63%);
