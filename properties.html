@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<link rel="icon" type="image/png" href="assets/img/logo.png" />
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
@@ -17,10 +18,8 @@
 <header class="site-header">
   <div class="container">
     <a href="index.html" class="brand">
-      <span class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
-      </span>
-      JS Home
+      <span class="brand-mark"><img src="assets/img/logo.png" alt="JS Home logo" /></span>
+      JS Home <span style="color:var(--text-muted);font-weight:500;font-size:14px;">บ้านพร้อมอยู่</span>
     </a>
     <nav class="nav-links">
       <a href="properties.html">ค้นหาทรัพย์</a>
@@ -95,7 +94,7 @@
 <footer class="site-footer">
   <div class="container">
     <div class="footer-row">
-      <div class="brand" style="font-size:16px;">JS Home</div>
+      <div class="brand" style="font-size:16px;">JS Home <span style="color:var(--text-muted);font-weight:500;font-size:12.5px;">บ้านพร้อมอยู่</span></div>
       <div>© 2026 JS Home · ราคาและรายละเอียดที่ถูกต้องให้ยึดตามหน้าเว็บ ธอส. เสมอ</div>
     </div>
   </div>
@@ -248,15 +247,33 @@
   function initMapIfNeeded() {
     if (leafletMap) return;
     leafletMap = L.map("propertyMap").setView([13.7563, 100.5018], 6); // ศูนย์กลางประเทศไทยคร่าวๆ
-    // CARTO Voyager — ฟรี ไม่ต้องมี API key เห็นถนน/ป้ายชื่อสถานที่ชัดเจนกว่า OSM มาตรฐาน
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: "abcd",
-      maxZoom: 20,
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
     }).addTo(leafletMap);
-    markerClusterGroup = L.markerClusterGroup({ chunkedLoading: true });
+    markerClusterGroup = L.markerClusterGroup({
+      chunkedLoading: true,
+      iconCreateFunction: function (cluster) {
+        const count = cluster.getChildCount();
+        const size = count < 50 ? 34 : count < 200 ? 42 : 50;
+        return L.divIcon({
+          html: `<div class="cluster-pin" style="width:${size}px;height:${size}px;line-height:${size}px;">${count}</div>`,
+          className: "cluster-pin-wrap",
+          iconSize: L.point(size, size),
+        });
+      },
+    });
     leafletMap.addLayer(markerClusterGroup);
   }
+
+  // ไอคอนหมุดสีส้ม (ตามโทนแบรนด์) แทนหมุดสีน้ำเงินเริ่มต้นของ Leaflet
+  const orangeIcon = L.divIcon({
+    className: "orange-pin-wrap",
+    html: '<div class="orange-pin"></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 20],
+    popupAnchor: [0, -18],
+  });
 
   async function loadMapMarkers() {
     initMapIfNeeded();
@@ -274,7 +291,7 @@
         const lng = parseFloat(p.lng);
         if (isNaN(lat) || isNaN(lng)) return;
 
-        const marker = L.marker([lat, lng]);
+        const marker = L.marker([lat, lng], { icon: orangeIcon });
         marker.bindPopup(`
           <div class="map-popup">
             <b>${p.name || "ไม่ระบุชื่อ"}</b><br/>
