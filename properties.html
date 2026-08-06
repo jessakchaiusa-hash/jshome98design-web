@@ -248,11 +248,13 @@
   function initMapIfNeeded() {
     if (leafletMap) return;
     leafletMap = L.map("propertyMap").setView([13.7563, 100.5018], 6); // ศูนย์กลางประเทศไทยคร่าวๆ
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19,
+    // CARTO Voyager — ฟรี ไม่ต้องมี API key เห็นถนน/ป้ายชื่อสถานที่ชัดเจนกว่า OSM มาตรฐาน
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: "abcd",
+      maxZoom: 20,
     }).addTo(leafletMap);
-    markerClusterGroup = L.markerClusterGroup();
+    markerClusterGroup = L.markerClusterGroup({ chunkedLoading: true });
     leafletMap.addLayer(markerClusterGroup);
   }
 
@@ -264,7 +266,7 @@
     markerClusterGroup.clearLayers();
 
     try {
-      const rows = await fetchPropertiesForMap({ filters: state.filters, limit: 3000 });
+      const rows = await fetchPropertiesForMap({ filters: state.filters, limit: 20000 });
       const bounds = [];
 
       rows.forEach((p) => {
@@ -288,8 +290,8 @@
         leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
       }
 
-      const cappedNote = rows.length >= 3000
-        ? ` (แสดงสูงสุด 3,000 จุดแรก — ลองกรองจังหวัด/อำเภอให้แคบลงเพื่อดูครบทุกจุด)`
+      const cappedNote = rows.length >= 20000
+        ? ` (แสดงสูงสุด 20,000 จุดแรก — ลองกรองจังหวัด/อำเภอให้แคบลงเพื่อดูครบทุกจุด)`
         : "";
       mapNote.textContent = `แสดง ${rows.length.toLocaleString("th-TH")} ตำแหน่งบนแผนที่${cappedNote}`;
       mapLoadedForFilters = filterSignature();
