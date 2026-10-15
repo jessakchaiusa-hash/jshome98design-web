@@ -57,6 +57,27 @@
           <option value="">ทั้งหมด</option>
         </select>
       </div>
+      <div class="field">
+        <label for="fPrice">ราคา</label>
+        <select id="fPrice">
+          <option value="">ทุกราคา</option>
+          <option value="0-500000">ไม่เกิน 5 แสน</option>
+          <option value="500000-1000000">5 แสน – 1 ล้าน</option>
+          <option value="1000000-2000000">1 – 2 ล้าน</option>
+          <option value="2000000-3000000">2 – 3 ล้าน</option>
+          <option value="3000000-5000000">3 – 5 ล้าน</option>
+          <option value="5000000-">5 ล้านขึ้นไป</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fSort">เรียงตาม</label>
+        <select id="fSort">
+          <option value="">อัปเดตล่าสุด</option>
+          <option value="price_asc">ราคาต่ำ → สูง</option>
+          <option value="price_desc">ราคาสูง → ต่ำ</option>
+          <option value="newest">ทรัพย์เข้าใหม่</option>
+        </select>
+      </div>
       <div class="field" style="align-self:end;">
         <button class="btn btn-primary" id="fSubmit" style="width:100%;">ค้นหา</button>
       </div>
@@ -106,7 +127,7 @@
   const PAGE_SIZE = 24;
   let state = {
     page: 1,
-    filters: { search: "", province: "", district: "", type: "" },
+    filters: { search: "", province: "", district: "", type: "", minPrice: "", maxPrice: "", sort: "" },
   };
 
   const grid = document.getElementById("propertyGrid");
@@ -126,23 +147,34 @@
     );
   }
 
+  // ราคาจาก ธอส. (+ ราคาเดิมขีดฆ่า ถ้าเพิ่งลดราคา)
+  function priceHtml(p) {
+    if (!p.price) return `<div class="property-price muted">ราคาติดต่อธนาคาร</div>`;
+    const old = p.prev_price && p.prev_price > p.price
+      ? ` <s class="property-price-old">${p.prev_price.toLocaleString("th-TH")}</s>` : "";
+    return `<div class="property-price">฿${p.price.toLocaleString("th-TH")}${old}</div>`;
+  }
+
   function renderCard(p) {
-    const img = p.img || "";
+    // รูปบน ghbhomecenter.com ถูกบล็อกเมื่อเรียกจากเว็บอื่น → ถือว่าไม่มีรูป
+    const img = p.img && !p.img.includes("ghbhomecenter.com") ? p.img : "";
     return `
       <a class="property-card" href="${p.ghb_link}" target="_blank" rel="noopener">
-        <div class="property-thumb">
+        <div class="property-thumb${img ? "" : " no-img"}">
           <span class="property-type-tag">${p.type || "ทรัพย์"}</span>
-          <img src="${img}" alt="${p.name || ""}" loading="lazy"
-               onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%25' height='100%25' fill='%23D8F3DC'/></svg>`)}'" />
+          ${p.promo ? `<span class="property-promo-tag">${p.promo.replace(/^ทรัพย์/, "")}</span>` : ""}
+          ${img ? `<img src="${img}" alt="${p.name || ""}" loading="lazy"
+               onerror="this.onerror=null;this.style.display='none'" />` : ""}
         </div>
         <div class="property-body">
+          ${priceHtml(p)}
           <h4>${p.name || "ไม่ระบุชื่อทรัพย์"}</h4>
           <div class="property-loc">📍 ${p.district || ""} ${p.province || ""}</div>
           <div class="property-meta">
             ${p.area ? `<span>📐 ${p.area}</span>` : ""}
             ${p.floor ? `<span>🏢 ${p.floor}</span>` : ""}
           </div>
-          <div class="property-cta">ดูรายละเอียด-ราคาที่ ธอส. →</div>
+          <div class="property-cta">ดูรูป-รายละเอียดที่ ธอส. →</div>
         </div>
       </a>
     `;
@@ -264,6 +296,8 @@
     state.filters.province = document.getElementById("fProvince").value;
     state.filters.district = document.getElementById("fDistrict").value.trim();
     state.filters.type = document.getElementById("fType").value;
+    [state.filters.minPrice = "", state.filters.maxPrice = ""] = document.getElementById("fPrice").value.split("-");
+    state.filters.sort = document.getElementById("fSort").value;
     state.page = 1;
     loadProperties();
   });
@@ -340,9 +374,10 @@
         const marker = L.marker([lat, lng], { icon: window._orangeIcon });
         marker.bindPopup(`
           <div class="map-popup">
+            ${priceHtml(p)}
             <b>${p.name || "ไม่ระบุชื่อ"}</b><br/>
-            <span>${p.type || ""} · ${p.district || ""} ${p.province || ""}</span><br/>
-            <a href="${p.ghb_link}" target="_blank" rel="noopener">ดูรายละเอียด-ราคาที่ ธอส. →</a>
+            <span>${p.type || ""}${p.area ? ` · ${p.area}` : ""} · ${p.district || ""} ${p.province || ""}</span><br/>
+            <a href="${p.ghb_link}" target="_blank" rel="noopener">ดูรูป-รายละเอียดที่ ธอส. →</a>
           </div>
         `);
         markerClusterGroup.addLayer(marker);

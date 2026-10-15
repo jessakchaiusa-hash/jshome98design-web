@@ -47,6 +47,14 @@ async function fetchPropertyCount(filters = {}) {
   return parseInt(total, 10) || 0;
 }
 
+// ตัวเลือก "เรียงตาม" → order ของ PostgREST (ทรัพย์ที่ไม่มีราคาไปอยู่ท้ายสุด)
+const SORT_ORDERS = {
+  "": "synced_at.desc,id.desc",
+  price_asc: "price.asc.nullslast,id.desc",
+  price_desc: "price.desc.nullslast,id.desc",
+  newest: "created_at.desc,id.desc",
+};
+
 // ดึงรายการทรัพย์ พร้อม filter + pagination
 async function fetchProperties({ filters = {}, page = 1, pageSize = 24 } = {}) {
   const from = (page - 1) * pageSize;
@@ -54,8 +62,10 @@ async function fetchProperties({ filters = {}, page = 1, pageSize = 24 } = {}) {
   const enabled = await getEnabledProvinces();
   const params = buildFilterParams(filters, enabled);
 
+  const order = SORT_ORDERS[filters.sort] || SORT_ORDERS[""];
+
   const res = await fetch(
-    `${REST_URL}?select=*&order=synced_at.desc&${params}`,
+    `${REST_URL}?select=*&order=${order}&${params}`,
     {
       headers: baseHeaders({
         Range: `${from}-${to}`,
@@ -85,7 +95,7 @@ async function fetchPropertiesForMap({ filters = {}, limit = 20000 } = {}) {
   while (allRows.length < limit) {
     const to = Math.min(from + PAGE_SIZE - 1, limit - 1);
     const res = await fetch(
-      `${REST_URL}?select=ghb_link,name,type,project,province,district,lat,lng&${query}`,
+      `${REST_URL}?select=ghb_link,name,type,project,province,district,lat,lng,price,area&${query}`,
       { headers: baseHeaders({ Range: `${from}-${to}` }) }
     );
     const rows = await res.json();
@@ -116,8 +126,9 @@ async function fetchProvinceList() {
 
 // ประเภททรัพย์ทั้งหมดตามหมวดหมู่ของ ธอส. (คงที่ ไม่ต้อง query ทุกครั้ง — เร็วกว่าและแม่นยำกว่า
 // การไล่ดึงจากข้อมูลทั้งตาราง เพราะมีทรัพย์บางประเภทน้อยกว่ามาก อาจตกหล่นถ้า query แบบ distinct ธรรมดา)
+// ตรงกับค่า type ที่ ghb-sync เขียนลงตาราง
 async function fetchTypeList() {
-  return ["บ้าน", "คอนโด", "อาคารพาณิชย์", "ที่ดิน"];
+  return ["บ้านเดี่ยว", "ทาวน์เฮ้าส์", "บ้านแฝด", "คอนโด", "อาคารพาณิชย์", "ที่ดิน", "แฟลต", "อื่นๆ"];
 }
 
 // ดึงรายชื่ออำเภอ/เขตทั้งหมดที่มีทรัพย์อยู่จริงในจังหวัดที่เลือก
@@ -142,7 +153,13 @@ function buildFilterParams(filters, enabledProvinces = []) {
     parts.push(`province=in.(${list})`);
   }
   if (filters.district) parts.push(`district=eq.${encodeURIComponent(filters.district)}`);
-  if (filters.type) parts.push(`type=eq.${encodeURIComponent(filters.type)}`);
+  if (Array.isArray(filters.type)) {
+    parts.push(`type=in.(${filters.type.map((t) => encodeURIComponent(t)).join(",")})`);
+  } else if (filters.type) {
+    parts.push(`type=eq.${encodeURIComponent(filters.type)}`);
+  }
+  if (filters.minPrice) parts.push(`price=gte.${parseInt(filters.minPrice, 10)}`);
+  if (filters.maxPrice) parts.push(`price=lte.${parseInt(filters.maxPrice, 10)}`);
   if (filters.search) {
     // ใช้ * แทน % สำหรับ wildcard (มาตรฐานของ PostgREST) เพื่อเลี่ยงปัญหาการเข้ารหัส % ผิดพลาด
     const q = encodeURIComponent(`*${filters.search}*`);

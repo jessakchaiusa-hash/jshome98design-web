@@ -147,7 +147,8 @@
 
       const [condo, house, other] = await Promise.all([
         fetchPropertyCount({ type: "คอนโด" }),
-        fetchPropertyCount({ type: "บ้าน" }),
+        // "บ้าน" = ทุกประเภทบ้านของ ธอส. (+ ค่าเก่า "บ้าน" ระหว่างเปลี่ยนข้อมูล)
+        fetchPropertyCount({ type: ["บ้านเดี่ยว", "ทาวน์เฮ้าส์", "บ้านแฝด", "บ้าน"] }),
         Promise.resolve(null),
       ]);
       const rows = document.querySelectorAll("#heroTypeBreakdown .hero-visual-row b");
