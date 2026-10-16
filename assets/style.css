@@ -882,3 +882,193 @@ body.member-lock { overflow: hidden; }
 }
 .member-box .btn { width: 100%; justify-content: center; }
 .member-ok { color: var(--green-800); font-weight: 600; }
+
+/* ===== บันทึกทรัพย์ (หัวใจ) ===== */
+.save-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 3;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(22, 59, 51, 0.18);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+.save-btn svg { fill: none; stroke: var(--green-800); stroke-width: 2; transition: transform 0.15s ease; }
+.save-btn:hover svg { transform: scale(1.1); }
+.save-btn.is-saved svg { fill: #E0453A; stroke: #E0453A; }
+.save-btn:disabled { opacity: 0.6; }
+.save-btn-lg { position: static; width: 46px; height: 46px; flex: none; border: 1px solid var(--border); box-shadow: none; }
+.save-btn-lg svg { width: 24px; height: 24px; }
+
+.member-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 20px);
+  z-index: 2100;
+  max-width: calc(100% - 32px);
+  background: var(--green-900);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.member-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ===== ค้นหาล่าสุด ===== */
+.recent-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 18px;
+}
+.recent-label { font-size: 13.5px; color: var(--text-muted); font-weight: 600; margin-right: 2px; }
+.recent-chip {
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-chip:hover { border-color: var(--orange-500); }
+.recent-clear { border: 0; background: none; color: var(--text-muted); font-size: 13px; text-decoration: underline; cursor: pointer; }
+
+/* ===== หน้ารายละเอียดทรัพย์ LED ===== */
+.led-detail { padding-top: 24px; padding-bottom: 40px; }
+.led-detail.is-locked { filter: blur(6px); pointer-events: none; user-select: none; }
+.crumbs { font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px; }
+.crumbs a { color: var(--green-700); }
+.led-detail-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: start; }
+.led-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--green-100);
+}
+.led-photo img { width: 100%; height: 100%; object-fit: cover; }
+.led-photo.no-img { aspect-ratio: 16 / 7; }
+#detailMap { height: 260px; border-radius: var(--radius); margin-top: 14px; border: 1px solid var(--border); z-index: 0; }
+.led-summary {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.led-summary-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.led-summary h1 { font-size: 24px; line-height: 1.35; }
+.led-loc { color: var(--text-muted); margin: 4px 0 14px; }
+.led-price-big { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--green-800); }
+.led-price-big span { display: block; font-family: var(--font-body); font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.led-next-big { margin: 12px 0 6px; font-weight: 600; color: var(--orange-700); }
+.led-next-big.muted { color: var(--text-muted); }
+.kv-list { margin: 14px 0 0; }
+.kv { display: grid; grid-template-columns: 170px 1fr; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 15px; }
+.kv dt { color: var(--text-muted); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.kv dd a { color: var(--green-700); text-decoration: underline; }
+.led-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.led-actions .btn { flex: 1 1 200px; }
+.led-section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-top: 22px;
+}
+.led-section h2 { font-size: 19px; margin-bottom: 12px; }
+.bid-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.bid-table th, .bid-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+.bid-table th { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+.bid-table tr.is-past td { color: var(--text-muted); }
+.bid-table tr.is-next td { background: var(--orange-100); font-weight: 600; }
+.led-detail .doc-draft a { color: var(--green-700); text-decoration: underline; }
+
+/* ===== หน้าทรัพย์ที่บันทึก ===== */
+.personal-link-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.personal-link-row input {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13.5px;
+  background: var(--bg);
+  color: var(--text);
+}
+.personal-link-row .btn { width: auto; }
+.property-card.is-gone { opacity: 0.65; }
+.state-msg a { color: var(--green-700); text-decoration: underline; }
+
+@media (max-width: 860px) {
+  .led-detail-grid { grid-template-columns: 1fr; }
+  .kv { grid-template-columns: 1fr; gap: 2px; }
+  .led-price-big { font-size: 24px; }
+}
+
+/* หน้ารายละเอียด LED — จัดหัวข้อตามประกาศกรมบังคับคดี */
+.led-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+.led-head h1 { font-size: 28px; }
+.led-info { margin: 0; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 20px; }
+.led-info .kv:first-child { border-top: 0; }
+.kv-empty { display: inline-block; min-width: 60px; border-bottom: 1px dotted var(--border); }
+.led-sale { margin-top: 22px; }
+.led-sale > section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 0 18px;
+  overflow: hidden;
+}
+.led-sale > section > *:not(.led-bar):not(.bid-table) { margin-left: 20px; margin-right: 20px; }
+.led-bar {
+  background: var(--green-900);
+  color: white;
+  font-size: 17px !important;
+  padding: 10px 20px;
+  margin: 0 0 14px !important;
+}
+.led-section .led-bar { margin: -22px -22px 14px !important; }
+.bid-table td:first-child, .bid-table th:first-child { text-align: center; width: 70px; }
+.next-badge { background: var(--orange-500); color: white; font-size: 11.5px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+.led-saleby { font-size: 16px; }
+.price-list { list-style: none; padding: 0; }
+.price-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: 15px;
+}
+.price-list li span:first-child::before { content: "» "; color: var(--orange-700); font-weight: 700; }
+.price-list li span:last-child { white-space: nowrap; }
+.led-notes { padding-left: 20px; margin: 0; }
+.led-notes li { margin-bottom: 4px; }
+.led-actions { margin: 22px 0 6px; }
+.link-btn { border: 0; background: none; color: var(--green-700); text-decoration: underline; cursor: pointer; font: inherit; padding: 0 4px; }
+
+@media (max-width: 860px) {
+  .price-list li { flex-direction: column; gap: 2px; }
+  .led-head h1 { font-size: 23px; }
+}
+.led-section { overflow: hidden; }

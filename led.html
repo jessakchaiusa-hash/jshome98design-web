@@ -25,7 +25,7 @@
       <a href="properties.html">ทรัพย์ NPA ธอส.</a>
       <a href="led.html">ทรัพย์กรมบังคับคดี</a>
       <a href="index.html#how">ขั้นตอนการซื้อ</a>
-      <a href="index.html#about">เกี่ยวกับเรา</a>
+      <a href="saved.html">♥ ที่บันทึก</a>
     </nav>
     <a href="index.html" class="btn btn-ghost btn-sm">กลับหน้าแรก</a>
   </div>
@@ -42,7 +42,7 @@
     <div class="filter-bar">
       <div class="field">
         <label for="fSearch">ค้นหา</label>
-        <input id="fSearch" type="text" placeholder="ตำบล, เลขโฉนด, เลขคดี..." />
+        <input id="fSearch" type="text" placeholder="ตำบล, เลขโฉนด, บ้านเลขที่..." />
       </div>
       <div class="field">
         <label for="fProvince">จังหวัด</label>
@@ -86,6 +86,8 @@
       ราคาที่แสดงคือ <b>ราคาประเมิน</b> ไม่ใช่ราคาเริ่มต้นประมูล · หมุดบนแผนที่เป็น <b>ตำแหน่งโดยประมาณ (กลางตำบล)</b>
       · แสดงเฉพาะทรัพย์ที่ยังมีนัดขาย · ตรวจสอบรายละเอียดและเงื่อนไขที่กรมบังคับคดีก่อนเข้าประมูลทุกครั้ง
     </div>
+
+    <div class="recent-bar" id="recentBar" hidden></div>
 
     <div class="result-meta">
       <span id="resultCount">กำลังโหลด...</span>
@@ -156,15 +158,19 @@
       : `<div class="property-price muted">ไม่ระบุราคาประเมิน</div>`;
   }
 
+  const detailUrl = (p) => `led-asset.html?p=${encodeURIComponent(p.slug)}`;
+  const ledSnap = (p) => ({ title: `${p.asset_type || "ทรัพย์"} ต.${p.tambon} อ.${p.amphoe} จ.${p.province}`,
+                           price: p.appraisal_price, next: p.next_bid_date, img: p.image_url });
+
   function renderCard(p) {
     const img = p.image_url;
-    const caseText = `คดีแดง ${p.case_no}/${p.case_year} · ลำดับ ${p.bid_no}`;
     return `
       <div class="property-card led-card">
         <div class="property-thumb${img ? "" : " no-img"}">
           <span class="property-type-tag">${esc(p.asset_type || "ทรัพย์")}</span>
           ${p.sale_type ? `<span class="property-promo-tag">${esc(p.sale_type)}</span>` : ""}
-          ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.onerror=null;this.style.display='none'" />` : ""}
+          ${saveButtonHtml("led", p.slug, ledSnap(p))}
+          ${img ? `<a href="${detailUrl(p)}"><img src="${esc(img)}" alt="" loading="lazy" onerror="this.onerror=null;this.style.display='none'" /></a>` : ""}
         </div>
         <div class="property-body">
           ${priceHtml(p)}
@@ -174,8 +180,8 @@
             ${areaText(p) ? `<span>📐 ${areaText(p)}</span>` : ""}
             ${p.lot_count > 1 ? `<span>🧩 ขายรวม ${p.lot_count} แปลง</span>` : ""}
           </div>
-          <div class="led-case">${esc(p.court)} · ${esc(caseText)}<br/>${esc(p.office)} ☎ ${esc(p.tel)}</div>
-          <a class="property-cta" href="${LED_SEARCH_URL}" target="_blank" rel="noopener">ค้นดูประกาศที่กรมบังคับคดี →</a>
+          <div class="led-case">สำนักงานบังคับคดี${esc(p.office)} ☎ ${esc(p.tel)}</div>
+          <a class="property-cta" href="${detailUrl(p)}">ดูรายละเอียดทรัพย์ →</a>
         </div>
       </div>`;
   }
@@ -192,6 +198,7 @@
         return;
       }
       $("propertyGrid").innerHTML = data.map(renderCard).join("");
+      refreshSaveButtons($("propertyGrid"));
       $("resultCount").textContent = `พบ ${total.toLocaleString("th-TH")} รายการ`;
       const pages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
       $("pageInfo").textContent = `หน้า ${state.page} จาก ${pages.toLocaleString("th-TH")}`;
@@ -249,7 +256,33 @@
     state.page = 1;
     loadList();
     if ($("mapView").style.display === "block") loadMap();
+    recentSearches.add("led", {
+      search: state.filters.search, province: state.filters.province, amphoe: state.filters.amphoe,
+      type: state.filters.type, price: $("fPrice").value, sort: state.filters.sort,
+    }, searchLabel());
+    showRecent();
   });
+
+  // ===== ค้นหาล่าสุด =====
+  function searchLabel() {
+    const sel = (id) => { const s = $(id); return s.value ? s.options[s.selectedIndex].text : ""; };
+    const q = $("fSearch").value.trim();
+    return [q && `"${q}"`, sel("fType"), sel("fProvince"), sel("fDistrict"), sel("fPrice")].filter(Boolean).join(" · ");
+  }
+
+  async function applyRecent(f) {
+    $("fSearch").value = f.search || "";
+    $("fProvince").value = f.province || "";
+    $("fDistrict").disabled = !f.province;
+    await fillSelect("fDistrict", f.province ? await fetchLedDistinct("amphoe", { province: f.province }) : [], f.amphoe || "");
+    $("fType").value = f.type || "";
+    $("fPrice").value = f.price || "";
+    $("fSort").value = f.sort || "";
+    $("fSubmit").click();
+  }
+
+  function showRecent() { renderRecentSearches($("recentBar"), "led", applyRecent); }
+  showRecent();
   $("fSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") $("fSubmit").click(); });
 
   // ===== แผนที่ =====
@@ -285,7 +318,7 @@
       const pts = [];
       rows.forEach((p) => {
         // ทรัพย์ในตำบลเดียวกันได้พิกัดเดียวกัน → เลื่อนเล็กน้อยไม่ให้ซ้อนทับ (คงที่ตาม id)
-        let h = 0; for (const ch of p.id) h = (h * 31 + ch.charCodeAt(0)) | 0;
+        let h = 0; for (const ch of p.slug) h = (h * 31 + ch.charCodeAt(0)) | 0;
         const lat = p.lat + ((h & 0xff) / 255 - 0.5) * 0.01;
         const lng = p.lng + (((h >> 8) & 0xff) / 255 - 0.5) * 0.01;
         const m = L.marker([lat, lng], { icon });
@@ -296,7 +329,8 @@
             <span>${areaText(p)} · ต.${esc(p.tambon)} อ.${esc(p.amphoe)} จ.${esc(p.province)}</span><br/>
             <span>📅 นัดขายถัดไป ${thaiDate(p.next_bid_date)}</span><br/>
             <span class="led-approx">ตำแหน่งโดยประมาณ (${p.geo_level === "tambon" ? "กลางตำบล" : p.geo_level === "amphoe" ? "กลางอำเภอ" : "กลางจังหวัด"})</span><br/>
-            <a href="${LED_SEARCH_URL}" target="_blank" rel="noopener">ค้นดูประกาศที่กรมบังคับคดี →</a>
+            <a href="${detailUrl(p)}">ดูรายละเอียดทรัพย์ →</a>
+            <a class="gmaps-btn" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">📍 นำทางไปบริเวณที่ตั้ง</a>
           </div>`);
         cluster.addLayer(m);
         pts.push([lat, lng]);

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>รายละเอียดทรัพย์กรมบังคับคดี | JS Home</title>
+<meta name="description" content="รายละเอียดทรัพย์ขายทอดตลาด กรมบังคับคดี: ราคาประเมินทุกประเภท หลักประกัน วันนัดขายทุกนัด ที่ตั้ง โฉนด และสำนักงานที่ติดต่อ" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="icon" type="image/png" href="assets/img/logo.png" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark"><img src="assets/img/logo.png" alt="JS Home logo" /></span>
+      JS Home <span style="color:var(--text-muted);font-weight:500;font-size:14px;">บ้านพร้อมอยู่</span>
+    </a>
+    <nav class="nav-links">
+      <a href="properties.html">ทรัพย์ NPA ธอส.</a>
+      <a href="led.html">ทรัพย์กรมบังคับคดี</a>
+      <a href="saved.html">♥ ที่บันทึก</a>
+    </nav>
+    <a href="led.html" class="btn btn-ghost btn-sm">← กลับไปรายการ</a>
+  </div>
+</header>
+
+<main class="container led-detail" id="detail">
+  <div class="state-msg">กำลังโหลด...</div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-row">
+      <div class="brand" style="font-size:16px;">JS Home <span style="color:var(--text-muted);font-weight:500;font-size:12.5px;">บ้านพร้อมอยู่</span></div>
+      <div>© 2026 JS Home · ข้อมูลจากประกาศขายทอดตลาด กรมบังคับคดี · ยึดตามประกาศของกรมบังคับคดีเสมอ</div>
+      <div class="footer-links"><a href="#" data-member-signup>สมัครสมาชิก</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="unsubscribe.html">ยกเลิกรับข่าวสาร</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/member.js"></script>
+<script src="assets/supabase-client.js"></script>
+<script src="assets/led-client.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // จัดหัวข้อตามหน้าประกาศ "รายการทรัพย์ที่จะขาย" ของกรมบังคับคดี
+  // ไม่แสดงเลขคดี ชื่อโจทก์/จำเลย/ผู้ถือกรรมสิทธิ์/เจ้าของสำนวน — ช่องที่ยังไม่มีข้อมูลแสดงหัวข้อไว้แต่ว่าง
+  const LED_SEARCH_URL = "https://asset.led.go.th/newbidreg/";
+  // ข้อความสถานะนัดขายตามรหัสของกรมบังคับคดี (0 = ยังไม่มีผล แสดง "-") — รหัสอื่นเติมเมื่อยืนยันความหมายแล้ว
+  const LED_STATUS_TEXT = { 0: "-" };
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const money = (n) => n ? Number(n).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
+  const dash = (v) => (v === null || v === undefined || v === "" || v === "-") ? "" : v;
+  // "2026-11-26" → "26/11/2569"
+  const beDate = (iso) => { const [y, m, d] = iso.split("-"); return `${d}/${m}/${+y + 543}`; };
+  const thaiDateLong = (iso) => new Date(iso + "T00:00:00")
+    .toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+
+  const field = (label, value) => `<div class="kv"><dt>${label}</dt><dd>${dash(value) || '<span class="kv-empty"></span>'}</dd></div>`;
+  const num = (v) => (v === null || v === undefined) ? "" : String(+v);
+
+  function bidTable(p) {
+    const dates = p.bid_dates || [];
+    const rows = dates.length ? dates.map((d, i) => {
+      const code = (p.bid_status || [])[i] ?? 0;
+      const next = d === p.next_bid_date;
+      return `<tr class="${next ? "is-next" : ""}">
+        <td>${i + 1}</td><td>${beDate(d)}${next ? ' <span class="next-badge">นัดถัดไป</span>' : ""}</td>
+        <td>${esc(LED_STATUS_TEXT[code] ?? "")}</td></tr>`;
+    }).join("") : `<tr><td colspan="3"></td></tr>`;
+    return `<table class="bid-table"><thead><tr><th>นัดที่</th><th>วันที่</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  function priceLine(label, v) {
+    return `<li><span>${label}</span><span>จำนวน <b>${v ? money(v) : "ไม่มี"}</b> บาท</span></li>`;
+  }
+
+  function render(p) {
+    const loc = `ต.${p.tambon || ""} อ.${p.amphoe || ""} จ.${p.province || ""}`;
+    const title = `${p.asset_type || "ทรัพย์"} ${loc}`;
+    document.title = `${p.asset_type || "ทรัพย์"} ${p.tambon || ""} ${p.province || ""} | ทรัพย์กรมบังคับคดี | JS Home`;
+    const snap = { title, price: p.appraisal_price, next: p.next_bid_date, img: p.image_url };
+    // "(02)1425253-56" = ช่วงเบอร์ 53–56 → โทรเบอร์แรก 021425253 · "(02)0124200 ต่อ 302-303" → 020124200
+    const tel = (p.tel || "").split(/ต่อ|[,/]/)[0].trim().replace(/-\d{1,2}$/, "").replace(/\D/g, "").slice(0, 10);
+    const approx = p.geo_level === "tambon" ? "กลางตำบล" : p.geo_level === "amphoe" ? "กลางอำเภอ" : "กลางจังหวัด";
+    const hasSplit = p.price_expert || p.price_officer || p.price_appraiser || p.price_committee;
+    const area = `${num(p.area_rai) || "-"} ไร่ ${num(p.area_ngan) || "0"} งาน ${num(p.area_wa) || "0"} ตร.วา/ตร.ม.`;
+    const place = [p.sale_location, p.sale_time ? `เวลา ${p.sale_time}` : ""].filter(Boolean).join(" ");
+
+    $detail.innerHTML = `
+      <nav class="crumbs"><a href="led.html">ทรัพย์กรมบังคับคดี</a> › <a href="led.html?province=${encodeURIComponent(p.province || "")}">${esc(p.province)}</a> › ${esc(p.amphoe)}</nav>
+
+      <div class="led-head">
+        <div>
+          <h1>รายการทรัพย์ที่จะขาย</h1>
+          <div class="led-loc">${esc(p.asset_type || "ทรัพย์")} · ${esc(loc)}</div>
+        </div>
+        ${saveButtonHtml("led", p.slug, snap, "save-btn-lg")}
+      </div>
+
+      <div class="led-detail-grid">
+        <dl class="kv-list led-info">
+          ${field("ศาล", esc(p.court))}
+          ${field("ประเภททรัพย์", esc(p.asset_type))}
+          ${field("ที่ดิน", esc([p.deed_type, p.deed_no].filter(Boolean).join(" ")))}
+          ${field("เนื้อที่", esc(area))}
+          ${p.lot_count > 1 ? field("ขายรวม", `${p.lot_count} แปลง/ห้อง`) : ""}
+          ${field("เลขที่", esc(dash(p.addr_no)))}
+          ${field("แขวง/ตำบล", esc(p.tambon))}
+          ${field("เขต/อำเภอ", esc(p.amphoe))}
+          ${field("จังหวัด", esc(p.province))}
+          ${field("ติดต่อ สำนักงานบังคับคดี/กอง", esc(p.office))}
+          ${field("โทรศัพท์", tel ? `<a href="tel:${tel}">${esc(p.tel)}</a>` : esc(p.tel))}
+          ${field("สถานที่จำหน่าย", esc(place))}
+        </dl>
+        <div>
+          <div class="led-photo${p.image_url ? "" : " no-img"}">
+            ${p.image_url ? `<a href="${esc(p.image_url)}" target="_blank" rel="noopener"><img src="${esc(p.image_url)}" alt="รูปทรัพย์ ${esc(title)}" onerror="this.closest('.led-photo').classList.add('no-img');this.remove();" /></a>` : ""}
+            <span class="property-type-tag">${esc(p.asset_type || "ทรัพย์")}</span>
+          </div>
+          <div id="detailMap"></div>
+          <p class="led-approx">📍 ตำแหน่งโดยประมาณ (${approx}) — กรมบังคับคดีไม่ได้ระบุพิกัดจริงของทรัพย์</p>
+        </div>
+      </div>
+
+      <div class="led-detail-grid led-sale">
+        <section>
+          <h2 class="led-bar">วันนัดขายทอดตลาด</h2>
+          ${bidTable(p)}
+          ${p.next_bid_date ? `<p class="led-next-big">📅 นัดขายถัดไป ${thaiDateLong(p.next_bid_date)}${p.sale_time ? ` เวลา ${esc(p.sale_time)} น.` : ""}</p>` : ""}
+        </section>
+        <section>
+          <h2 class="led-bar">ราคาประเมิน</h2>
+          <p class="led-saleby"><b>จะทำการขายโดย</b> ${esc(dash(p.sale_type))}</p>
+          <ul class="price-list">
+            ${priceLine("ราคาประเมินของผู้เชี่ยวชาญการประเมินราคา", p.price_expert)}
+            ${priceLine("ราคาประเมินของเจ้าพนักงานบังคับคดี", p.price_officer)}
+            ${priceLine("ราคาประเมินของเจ้าพนักงานประเมินราคาทรัพย์ กรมบังคับคดี", p.price_appraiser)}
+            ${priceLine("ราคาที่กำหนดโดยคณะกรรมการกำหนดราคาทรัพย์", p.price_committee)}
+          </ul>
+          ${hasSplit ? "" : `<p class="led-approx">ยังไม่มีราคาแยกประเภทของทรัพย์นี้ (จะครบเมื่ออัปเดตข้อมูลรอบถัดไป) · ราคาประเมินสูงสุดที่ประกาศ <b>${money(p.appraisal_price) || "-"}</b> บาท</p>`}
+          <dl class="kv-list">
+            ${field("วันที่ประกาศขึ้นเว็บ", "")}
+            ${field("หมายเหตุ", esc(dash(p.remark)))}
+          </dl>
+          <p class="led-approx">กรณีขายรวม ให้ตรวจสอบรายละเอียดของทุกรายการที่ขายในลำดับเดียวกัน</p>
+        </section>
+      </div>
+
+      <section class="led-section">
+        <h2 class="led-bar">เงื่อนไขผู้เข้าสู้ราคา</h2>
+        <p>ผู้ประสงค์จะเข้าเสนอราคาต้องวางหลักประกันเป็นจำนวน <b>${p.deposit ? money(p.deposit) : "ไม่มี"}</b> บาท</p>
+        <p>ผู้มีสิทธิหักส่วนได้ใช้แทน หรือคู่สมรสที่ศาลอนุญาตให้กันส่วนแล้ว ต้องวางหลักประกันเป็นจำนวน <span class="kv-empty"></span> บาท</p>
+      </section>
+
+      <section class="led-section">
+        <h2 class="led-bar">ราคาเริ่มต้น</h2>
+        <p>ราคาเริ่มต้นในการขายทอดตลาดใช้ราคาของคณะกรรมการกำหนดราคาทรัพย์ก่อน ถ้าไม่มีใช้ราคาประเมินของเจ้าพนักงานประเมินราคาทรัพย์ กรมบังคับคดี
+          ถ้าไม่มีอีกใช้ราคาประเมินของเจ้าพนักงานบังคับคดี (ยกเว้นกรณีริบมัดจำแล้วนำออกขายใหม่ นัดแรกใช้ราคาที่เคยเคาะไม้ขาย)
+          ตามประกาศคณะกรรมการกำหนดหลักเกณฑ์ฯ ลงวันที่ 14 มีนาคม 2559</p>
+      </section>
+
+      <section class="led-section">
+        <h2 class="led-bar">หมายเหตุ</h2>
+        <ul class="led-notes">
+          <li>ประกาศจะถูกลบจากเว็บไซต์กรมบังคับคดีหลังพ้นวันขายนัดสุดท้าย</li>
+          <li>ถ้าขายได้แล้ว ถอนการยึด ถอนการบังคับคดี หรืองดขายในนัดที่เหลือ จะไม่มีการขายทรัพย์รายการนี้ต่อตามประกาศ</li>
+          <li>ก่อนเข้าสู้ราคา ผู้ซื้อต้องตรวจสอบทรัพย์และสภาพทรัพย์ด้วยตนเอง ถือว่าผู้ซื้อทราบสภาพทรัพย์แล้ว</li>
+          <li>กรุณาจดเลขที่โฉนด อำเภอ จังหวัด ไว้ใช้ติดต่อสำนักงานบังคับคดี</li>
+        </ul>
+      </section>
+
+      <div class="led-actions">
+        <a class="btn btn-primary" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">📍 นำทางไปบริเวณที่ตั้ง</a>
+        ${tel ? `<a class="btn btn-ghost" href="tel:${tel}">☎ โทรสำนักงานบังคับคดี</a>` : ""}
+        <button type="button" class="btn btn-ghost" id="btnShare">🔗 แชร์ทรัพย์นี้</button>
+      </div>
+
+      <div class="doc-draft">
+        ข้อมูลรวบรวมจากประกาศขายทอดตลาดของกรมบังคับคดี อัปเดตล่าสุด ${new Date(p.last_seen).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}
+        ก่อนเข้าประมูลโปรดตรวจสอบกับสำนักงานบังคับคดีที่รับผิดชอบอีกครั้ง
+        · ต้องการดูประกาศต้นฉบับ: เปิด <a href="${LED_SEARCH_URL}" target="_blank" rel="noopener">asset.led.go.th</a>
+        แล้วค้นด้วยเลขโฉนด <b>${esc(p.deed_no || "-")}</b> จ.${esc(p.province)}
+        <button type="button" class="link-btn" id="btnCopyDeed">คัดลอกเลขโฉนด</button>
+      </div>`;
+
+    refreshSaveButtons($detail);
+
+    if (p.lat && p.lng) {
+      const map = L.map("detailMap", { scrollWheelZoom: false }).setView([p.lat, p.lng], p.geo_level === "tambon" ? 14 : 12);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors", maxZoom: 19,
+      }).addTo(map);
+      L.circle([p.lat, p.lng], { radius: p.geo_level === "tambon" ? 1200 : 4000, color: "#386F62", fillOpacity: 0.12 }).addTo(map);
+      L.marker([p.lat, p.lng], {
+        icon: L.divIcon({ className: "orange-pin-wrap", html: '<div class="orange-pin led"></div>', iconSize: [22, 22], iconAnchor: [11, 20] }),
+      }).addTo(map);
+    } else {
+      document.getElementById("detailMap").remove();
+    }
+
+    document.getElementById("btnShare").addEventListener("click", async () => {
+      const url = location.href;
+      try {
+        if (navigator.share) await navigator.share({ title: document.title, url });
+        else { await navigator.clipboard.writeText(url); memberToast("คัดลอกลิงก์แล้ว"); }
+      } catch (e) { /* ผู้ใช้ยกเลิก */ }
+    });
+    document.getElementById("btnCopyDeed").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText((p.deed_no || "").split(",")[0].trim()); memberToast("คัดลอกเลขโฉนดแล้ว"); }
+      catch (e) { /* ข้าม */ }
+    });
+  }
+
+  const $detail = document.getElementById("detail");
+  const slug = new URLSearchParams(location.search).get("p");
+
+  async function init() {
+    if (!slug) {
+      $detail.innerHTML = `<div class="state-msg">ไม่พบทรัพย์ <a href="led.html">กลับไปดูรายการ</a></div>`;
+      return;
+    }
+    try {
+      const res = await fetch(`${LED_REST_URL}?select=${LED_COLS}&slug=eq.${encodeURIComponent(slug)}`, { headers: baseHeaders() });
+      const rows = await res.json();
+      if (!Array.isArray(rows) || !rows.length) {
+        $detail.innerHTML = `<div class="state-msg">ทรัพย์นี้ไม่อยู่ในระบบแล้ว (อาจขายได้หรือถอนการขาย) <a href="led.html">ดูทรัพย์อื่น</a></div>`;
+        return;
+      }
+      await loadSaved();
+      render(rows[0]);
+    } catch (e) {
+      console.error(e);
+      $detail.innerHTML = `<div class="state-msg">โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง</div>`;
+    }
+  }
+
+  // ยังไม่เป็นสมาชิก → ให้สมัครก่อน (ปิดหน้าต่างโดยไม่สมัคร = กลับไปหน้ารายการ)
+  if (!memberStore.get()) {
+    $detail.classList.add("is-locked");
+    openMemberModal(null, {
+      closeHref: "led.html",
+      after: () => { $detail.classList.remove("is-locked"); loadSaved(true).then(() => refreshSaveButtons()); },
+    });
+  }
+  init();
+</script>
+
+</body>
+</html>

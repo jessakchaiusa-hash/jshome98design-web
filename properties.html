@@ -25,7 +25,7 @@
       <a href="properties.html">ทรัพย์ NPA ธอส.</a>
       <a href="led.html">ทรัพย์กรมบังคับคดี</a>
       <a href="index.html#how">ขั้นตอนการซื้อ</a>
-      <a href="index.html#about">เกี่ยวกับเรา</a>
+      <a href="saved.html">♥ ที่บันทึก</a>
     </nav>
     <a href="index.html" class="btn btn-ghost btn-sm">กลับหน้าแรก</a>
   </div>
@@ -83,6 +83,8 @@
         <button class="btn btn-primary" id="fSubmit" style="width:100%;">ค้นหา</button>
       </div>
     </div>
+
+    <div class="recent-bar" id="recentBar" hidden></div>
 
     <div class="result-meta">
       <span id="resultCount">กำลังโหลด...</span>
@@ -166,6 +168,7 @@
         <div class="property-thumb${img ? "" : " no-img"}">
           <span class="property-type-tag">${p.type || "ทรัพย์"}</span>
           ${p.promo ? `<span class="property-promo-tag">${p.promo.replace(/^ทรัพย์/, "")}</span>` : ""}
+          ${saveButtonHtml("npa", p.id, { title: p.name, price: p.price, loc: `${p.district || ""} ${p.province || ""}`.trim(), url: p.ghb_link })}
           ${img ? `<img src="${img}" alt="${p.name || ""}" loading="lazy"
                onerror="this.onerror=null;this.style.display='none'" />` : ""}
         </div>
@@ -205,6 +208,7 @@
       }
 
       grid.innerHTML = data.map(renderCard).join("");
+      refreshSaveButtons(grid);
       resultCount.textContent = `พบ ${total.toLocaleString("th-TH")} รายการ`;
 
       const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
@@ -303,7 +307,35 @@
     state.filters.sort = document.getElementById("fSort").value;
     state.page = 1;
     loadProperties();
+    recentSearches.add("npa", {
+      search: state.filters.search, province: state.filters.province, district: state.filters.district,
+      type: state.filters.type, price: document.getElementById("fPrice").value, sort: state.filters.sort,
+    }, searchLabel());
+    showRecent();
   });
+
+  // ===== ค้นหาล่าสุด =====
+  function searchLabel() {
+    const sel = (id) => { const s = document.getElementById(id); return s.value ? s.options[s.selectedIndex].text : ""; };
+    const q = document.getElementById("fSearch").value.trim();
+    return [q && `"${q}"`, sel("fType"), sel("fProvince"), sel("fDistrict"), sel("fPrice")].filter(Boolean).join(" · ");
+  }
+
+  async function applyRecent(f) {
+    document.getElementById("fSearch").value = f.search || "";
+    document.getElementById("fProvince").value = f.province || "";
+    await refreshDistrictOptions(f.province || "");
+    document.getElementById("fDistrict").value = f.district || "";
+    document.getElementById("fType").value = f.type || "";
+    document.getElementById("fPrice").value = f.price || "";
+    document.getElementById("fSort").value = f.sort || "";
+    document.getElementById("fSubmit").click();
+  }
+
+  function showRecent() {
+    renderRecentSearches(document.getElementById("recentBar"), "npa", applyRecent);
+  }
+  showRecent();
 
   document.getElementById("fSearch").addEventListener("keydown", (e) => {
     if (e.key === "Enter") document.getElementById("fSubmit").click();

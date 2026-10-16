@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ทรัพย์ที่บันทึก | JS Home</title>
+<meta name="robots" content="noindex" />
+<meta name="referrer" content="no-referrer" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/img/logo.png" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark"><img src="assets/img/logo.png" alt="JS Home logo" /></span>
+      JS Home <span style="color:var(--text-muted);font-weight:500;font-size:14px;">บ้านพร้อมอยู่</span>
+    </a>
+    <nav class="nav-links">
+      <a href="properties.html">ทรัพย์ NPA ธอส.</a>
+      <a href="led.html">ทรัพย์กรมบังคับคดี</a>
+      <a href="saved.html">♥ ที่บันทึก</a>
+    </nav>
+    <a href="index.html" class="btn btn-ghost btn-sm">กลับหน้าแรก</a>
+  </div>
+</header>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head" style="margin-bottom:20px;">
+      <span class="section-eyebrow">บัญชีของฉัน</span>
+      <h2>ทรัพย์ที่บันทึกไว้</h2>
+    </div>
+
+    <div id="savedNotMember" class="member-box" hidden>
+      <p>สมัครสมาชิกฟรีเพื่อบันทึกทรัพย์ที่สนใจ แล้วกลับมาดูได้ทุกเมื่อ</p>
+      <button type="button" class="btn btn-primary" data-member-signup>สมัครสมาชิก</button>
+    </div>
+
+    <div class="property-grid" id="savedGrid"></div>
+
+    <div id="personalBox" class="member-box" hidden>
+      <h3 style="font-size:17px;margin-bottom:6px;">🔑 ลิงก์ส่วนตัว — เปิดรายการนี้บนเครื่องอื่น</h3>
+      <p class="doc-meta" style="margin-top:0;">ส่งลิงก์นี้เข้า LINE หรืออีเมลของตัวเอง แล้วเปิดจากมือถือ/คอมเครื่องอื่นได้ทันที
+        <b>อย่าส่งให้คนอื่น</b> เพราะใครมีลิงก์นี้จะเห็นและแก้รายการที่บันทึกของท่านได้</p>
+      <div class="personal-link-row">
+        <input id="personalLink" readonly />
+        <button type="button" class="btn btn-primary btn-sm" id="btnCopy">คัดลอก</button>
+        <a class="btn btn-ghost btn-sm" id="btnLine" target="_blank" rel="noopener">ส่งเข้า LINE</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-row">
+      <div class="brand" style="font-size:16px;">JS Home <span style="color:var(--text-muted);font-weight:500;font-size:12.5px;">บ้านพร้อมอยู่</span></div>
+      <div class="footer-links"><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="unsubscribe.html">ยกเลิกรับข่าวสาร</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/member.js"></script>
+<script src="assets/supabase-client.js"></script>
+<script>
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const $ = (id) => document.getElementById(id);
+  const baht = (n) => n ? `฿${Number(n).toLocaleString("th-TH")}` : "";
+  const thaiDate = (iso) => iso
+    ? new Date(iso + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }) : "";
+
+  // ดึงข้อมูลล่าสุดของทรัพย์ที่บันทึก (ตารางทรัพย์เป็นข้อมูลสาธารณะอยู่แล้ว)
+  async function fetchByIds(table, cols, ids, key = "id") {
+    if (!ids.length) return [];
+    const list = ids.map((x) => `"${String(x).replace(/"/g, '\\"')}"`).join(",");
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${cols}&${key}=in.(${encodeURIComponent(list)})`, { headers: baseHeaders() });
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function card({ kind, ref, href, external, img, tag, price, title, loc, extra, gone, snap }) {
+    return `
+      <div class="property-card${gone ? " is-gone" : ""}">
+        <div class="property-thumb${img ? "" : " no-img"}">
+          <span class="property-type-tag">${esc(tag)}</span>
+          ${saveButtonHtml(kind, ref, snap)}
+          ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.onerror=null;this.style.display='none'" />` : ""}
+        </div>
+        <div class="property-body">
+          ${price ? `<div class="property-price">${price}</div>` : ""}
+          <h4>${esc(title)}</h4>
+          ${loc ? `<div class="property-loc">📍 ${esc(loc)}</div>` : ""}
+          ${extra || ""}
+          ${gone ? `<div class="led-next">ทรัพย์นี้ไม่อยู่ในระบบแล้ว (อาจขายได้แล้ว)</div>` :
+            `<a class="property-cta" href="${esc(href)}"${external ? ' target="_blank" rel="noopener"' : ""}>ดูรายละเอียดทรัพย์ →</a>`}
+        </div>
+      </div>`;
+  }
+
+  async function render() {
+    const grid = $("savedGrid");
+    grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1;">กำลังโหลด...</div>`;
+    const st = await loadSaved(true);
+    const key = await memberKey();
+    if (!key) {
+      grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1;">เครื่องนี้ยังไม่ได้ผูกกับบัญชี — เปิด "ลิงก์ส่วนตัว" จากเครื่องที่สมัครไว้ หรือ<a href="#" data-member-signup>สมัครด้วยเบอร์และอีเมลเดิม</a>อีกครั้ง</div>`;
+      return;
+    }
+
+    const link = memberPersonalLink(key);
+    $("personalBox").hidden = false;
+    $("personalLink").value = link;
+    $("btnLine").href = `https://line.me/R/share?text=${encodeURIComponent("ลิงก์ส่วนตัว JS Home (ทรัพย์ที่บันทึกไว้): " + link)}`;
+
+    const items = st.items;
+    if (!items.length) {
+      grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1;">ยังไม่มีทรัพย์ที่บันทึก — กด ♥ บนทรัพย์ที่สนใจใน
+        <a href="properties.html">ทรัพย์ NPA ธอส.</a> หรือ <a href="led.html">ทรัพย์กรมบังคับคดี</a></div>`;
+      return;
+    }
+
+    const npaIds = items.filter((i) => i.kind === "npa").map((i) => i.ref);
+    const ledIds = items.filter((i) => i.kind === "led").map((i) => i.ref);
+    const [npa, led] = await Promise.all([
+      fetchByIds("properties", "id,name,type,price,district,province,img,ghb_link", npaIds),
+      fetchByIds("led_assets", "slug,asset_type,tambon,amphoe,province,appraisal_price,next_bid_date,image_url", ledIds, "slug"),
+    ]);
+    const npaMap = new Map(npa.map((r) => [String(r.id), r]));
+    const ledMap = new Map(led.map((r) => [r.slug, r]));
+
+    grid.innerHTML = items.map((i) => {
+      const s = i.snapshot || {};
+      if (i.kind === "npa") {
+        const p = npaMap.get(String(i.ref));
+        const img = p && p.img && !p.img.includes("ghbhomecenter.com") ? p.img : "";
+        return card({ kind: "npa", ref: i.ref, snap: s, external: true, tag: p ? p.type || "NPA ธอส." : "NPA ธอส.",
+          href: p ? p.ghb_link : s.url, img, gone: !p,
+          price: baht(p ? p.price : s.price), title: p ? p.name : s.title || "ทรัพย์ NPA ธอส.",
+          loc: p ? `${p.district || ""} ${p.province || ""}` : s.loc });
+      }
+      const p = ledMap.get(i.ref);
+      return card({ kind: "led", ref: i.ref, snap: s, tag: p ? p.asset_type || "กรมบังคับคดี" : "กรมบังคับคดี",
+        href: `led-asset.html?p=${encodeURIComponent(i.ref)}`, img: p ? p.image_url : s.img, gone: !p,
+        price: baht(p ? p.appraisal_price : s.price) && `${baht(p ? p.appraisal_price : s.price)} <span class="led-price-label">ราคาประเมิน</span>`,
+        title: p ? `${p.asset_type || "ทรัพย์"} ต.${p.tambon}` : s.title || "ทรัพย์กรมบังคับคดี",
+        loc: p ? `อ.${p.amphoe} จ.${p.province}` : "",
+        extra: p && p.next_bid_date ? `<div class="led-next">📅 นัดขายถัดไป ${thaiDate(p.next_bid_date)}</div>` : "" });
+    }).join("");
+    refreshSaveButtons(grid);
+  }
+
+  $("btnCopy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText($("personalLink").value); memberToast("คัดลอกลิงก์ส่วนตัวแล้ว"); }
+    catch (e) { $("personalLink").select(); }
+  });
+
+  // เลิกบันทึกจากหน้านี้ → เอาการ์ดออก
+  document.addEventListener("member-saved-change", (e) => { if (!e.detail.saved) render(); });
+
+  if (memberStore.get()) render();
+  else $("savedNotMember").hidden = false;
+
+  // สมัครจากหน้านี้เสร็จ → แสดงรายการ
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-member-signup]")) {
+      setTimeout(() => { memberAfterSignup = () => { $("savedNotMember").hidden = true; render(); }; }, 0);
+    }
+  });
+</script>
+
+</body>
+</html>

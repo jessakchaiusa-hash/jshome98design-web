@@ -3,11 +3,17 @@
 
 const LED_REST_URL = `${SUPABASE_URL}/rest/v1/led_assets`;
 
+// คอลัมน์ที่เว็บอ่านได้ (เลขคดี / id ถูกซ่อนจาก anon — ใช้ slug ในลิงก์แทน)
+const LED_COLS = "slug,asset_type,addr_no,tambon,amphoe,province,deed_type,deed_no,area_rai,area_ngan,area_wa," +
+  "lot_count,appraisal_price,deposit,sale_type,court,bid_dates,bid_status,next_bid_date,remark,sale_location," +
+  "sale_time,office,tel,image_url,lat,lng,geo_level,first_seen,last_seen," +
+  "price_expert,price_officer,price_appraiser,price_committee";
+
 const LED_SORT_ORDERS = {
-  "": "next_bid_date.asc.nullslast,id.asc",
-  price_asc: "appraisal_price.asc.nullslast,id.asc",
-  price_desc: "appraisal_price.desc.nullslast,id.asc",
-  newest: "first_seen.desc,id.asc",
+  "": "next_bid_date.asc.nullslast,slug.asc",
+  price_asc: "appraisal_price.asc.nullslast,slug.asc",
+  price_desc: "appraisal_price.desc.nullslast,slug.asc",
+  newest: "first_seen.desc,slug.asc",
 };
 
 // ประเภทตามที่กรมบังคับคดีใช้
@@ -23,7 +29,7 @@ function ledFilterParams(f = {}) {
   if (f.maxPrice) p.push(`appraisal_price=lte.${parseInt(f.maxPrice, 10)}`);
   if (f.search) {
     const q = encodeURIComponent(`*${f.search}*`);
-    p.push(`or=(tambon.ilike.${q},amphoe.ilike.${q},deed_no.ilike.${q},case_no.ilike.${q},remark.ilike.${q})`);
+    p.push(`or=(tambon.ilike.${q},amphoe.ilike.${q},deed_no.ilike.${q},addr_no.ilike.${q},remark.ilike.${q})`);
   }
   return p.join("&");
 }
@@ -31,7 +37,7 @@ function ledFilterParams(f = {}) {
 async function fetchLedAssets({ filters = {}, page = 1, pageSize = 24 } = {}) {
   const from = (page - 1) * pageSize;
   const order = LED_SORT_ORDERS[filters.sort] || LED_SORT_ORDERS[""];
-  const res = await fetch(`${LED_REST_URL}?select=*&order=${order}&${ledFilterParams(filters)}`, {
+  const res = await fetch(`${LED_REST_URL}?select=${LED_COLS}&order=${order}&${ledFilterParams(filters)}`, {
     headers: baseHeaders({ Range: `${from}-${from + pageSize - 1}`, Prefer: "count=exact" }),
   });
   const range = res.headers.get("content-range");
@@ -40,7 +46,7 @@ async function fetchLedAssets({ filters = {}, page = 1, pageSize = 24 } = {}) {
 
 async function fetchLedForMap({ filters = {}, limit = 20000 } = {}) {
   const q = [ledFilterParams(filters), "lat=not.is.null"].filter(Boolean).join("&");
-  const cols = "id,asset_type,tambon,amphoe,province,appraisal_price,next_bid_date,area_rai,area_ngan,area_wa,lot_count,lat,lng,geo_level,image_url";
+  const cols = "slug,asset_type,tambon,amphoe,province,appraisal_price,next_bid_date,area_rai,area_ngan,area_wa,lot_count,lat,lng,geo_level,image_url";
   let all = [], from = 0;
   while (all.length < limit) {
     const res = await fetch(`${LED_REST_URL}?select=${cols}&${q}`, {
@@ -61,7 +67,7 @@ async function fetchLedDistinct(col, filters = {}) {
   // Supabase ส่งได้ครั้งละไม่เกิน 1,000 แถว → ไล่ทีละช่วงจนครบ
   const set = new Set();
   for (let from = 0; ; from += 1000) {
-    const res = await fetch(`${LED_REST_URL}?select=${col}&next_bid_date=not.is.null${extra}&order=${col}.asc,id.asc`, {
+    const res = await fetch(`${LED_REST_URL}?select=${col}&next_bid_date=not.is.null${extra}&order=${col}.asc,slug.asc`, {
       headers: baseHeaders({ Range: `${from}-${from + 999}` }),
     });
     const rows = await res.json();
