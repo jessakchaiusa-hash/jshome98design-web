@@ -378,6 +378,8 @@
             <b>${p.name || "ไม่ระบุชื่อ"}</b><br/>
             <span>${p.type || ""}${p.area ? ` · ${p.area}` : ""} · ${p.district || ""} ${p.province || ""}</span><br/>
             <a href="${p.ghb_link}" target="_blank" rel="noopener">ดูรูป-รายละเอียดที่ ธอส. →</a>
+            <!-- ลิงก์ Universal ของ Google Maps: มือถือเปิดแอปพร้อมนำทาง, คอมเปิดในเว็บ (ไม่ต้องใช้ API key) -->
+            <a class="gmaps-btn" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" rel="noopener">📍 นำทางด้วย Google Maps</a>
           </div>
         `);
         markerClusterGroup.addLayer(marker);

@@ -525,6 +525,18 @@ h1, h2, h3, h4 {
   margin-top: 4px;
 }
 
+.map-popup a.gmaps-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--green-800);
+  color: white;
+  text-align: center;
+  text-decoration: none;
+}
+.map-popup a.gmaps-btn:hover { background: var(--green-900); }
+
 /* หมุดสีส้มตามโทนแบรนด์ (แทนหมุดน้ำเงินเริ่มต้นของ Leaflet) */
 .orange-pin-wrap { background: transparent; border: none; }
 .orange-pin {
