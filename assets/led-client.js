@@ -7,7 +7,8 @@ const LED_REST_URL = `${SUPABASE_URL}/rest/v1/led_assets`;
 const LED_COLS = "slug,asset_type,addr_no,tambon,amphoe,province,deed_type,deed_no,area_rai,area_ngan,area_wa," +
   "lot_count,appraisal_price,deposit,sale_type,court,bid_dates,bid_status,next_bid_date,remark,sale_location," +
   "sale_time,office,tel,image_url,lat,lng,geo_level,first_seen,last_seen," +
-  "price_expert,price_officer,price_appraiser,price_committee";
+  "price_expert,price_officer,price_appraiser,price_committee," +
+  "mortgagee,mortgage_debt,announce_date,deposit_spouse,map_url,mapjot_url,sale_location2,sale_time2";
 
 const LED_SORT_ORDERS = {
   "": "next_bid_date.asc.nullslast,slug.asc",

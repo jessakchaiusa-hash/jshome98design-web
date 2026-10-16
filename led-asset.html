@@ -51,8 +51,6 @@
   // จัดหัวข้อตามหน้าประกาศ "รายการทรัพย์ที่จะขาย" ของกรมบังคับคดี
   // ไม่แสดงเลขคดี ชื่อโจทก์/จำเลย/ผู้ถือกรรมสิทธิ์/เจ้าของสำนวน — ช่องที่ยังไม่มีข้อมูลแสดงหัวข้อไว้แต่ว่าง
   const LED_SEARCH_URL = "https://asset.led.go.th/newbidreg/";
-  // ข้อความสถานะนัดขายตามรหัสของกรมบังคับคดี (0 = ยังไม่มีผล แสดง "-") — รหัสอื่นเติมเมื่อยืนยันความหมายแล้ว
-  const LED_STATUS_TEXT = { 0: "-" };
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const money = (n) => n ? Number(n).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
@@ -68,11 +66,10 @@
   function bidTable(p) {
     const dates = p.bid_dates || [];
     const rows = dates.length ? dates.map((d, i) => {
-      const code = (p.bid_status || [])[i] ?? 0;
       const next = d === p.next_bid_date;
       return `<tr class="${next ? "is-next" : ""}">
         <td>${i + 1}</td><td>${beDate(d)}${next ? ' <span class="next-badge">นัดถัดไป</span>' : ""}</td>
-        <td>${esc(LED_STATUS_TEXT[code] ?? "")}</td></tr>`;
+        <td>-</td></tr>`;
     }).join("") : `<tr><td colspan="3"></td></tr>`;
     return `<table class="bid-table"><thead><tr><th>นัดที่</th><th>วันที่</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
@@ -91,7 +88,13 @@
     const approx = p.geo_level === "tambon" ? "กลางตำบล" : p.geo_level === "amphoe" ? "กลางอำเภอ" : "กลางจังหวัด";
     const hasSplit = p.price_expert || p.price_officer || p.price_appraiser || p.price_committee;
     const area = `${num(p.area_rai) || "-"} ไร่ ${num(p.area_ngan) || "0"} งาน ${num(p.area_wa) || "0"} ตร.วา/ตร.ม.`;
-    const place = [p.sale_location, p.sale_time ? `เวลา ${p.sale_time}` : ""].filter(Boolean).join(" ");
+    const place = [p.sale_location, p.sale_time ? `เวลา ${p.sale_time}` : "",
+                   p.sale_location2 ? `และ ${p.sale_location2}` : "", p.sale_time2 ? `เวลา ${p.sale_time2}` : ""].filter(Boolean).join(" ");
+    // กรมบังคับคดีแสดงผู้รับจำนองเฉพาะกรณี "การจำนองติดไป"
+    const mortgage = /ติด/.test(p.sale_type || "") && (p.mortgagee || p.mortgage_debt)
+      ? ` ติดจำนอง ${esc(p.mortgagee || "")}${p.mortgage_debt ? ` ยอดหนี้จำนอง ${money(p.mortgage_debt)} บาท` : ""}` : "";
+    const mapImg = (url, label) => url
+      ? `<a class="led-mapimg" href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="${label}" loading="lazy" onerror="this.closest('a').remove()" /><span>${label}</span></a>` : "";
 
     $detail.innerHTML = `
       <nav class="crumbs"><a href="led.html">ทรัพย์กรมบังคับคดี</a> › <a href="led.html?province=${encodeURIComponent(p.province || "")}">${esc(p.province)}</a> › ${esc(p.amphoe)}</nav>
@@ -126,6 +129,7 @@
           </div>
           <div id="detailMap"></div>
           <p class="led-approx">📍 ตำแหน่งโดยประมาณ (${approx}) — กรมบังคับคดีไม่ได้ระบุพิกัดจริงของทรัพย์</p>
+          <div class="led-mapimgs">${mapImg(p.map_url, "แผนที่ตั้งทรัพย์พอสังเขป")}${mapImg(p.mapjot_url, "แผนที่โจทก์ส่ง")}</div>
         </div>
       </div>
 
@@ -137,7 +141,7 @@
         </section>
         <section>
           <h2 class="led-bar">ราคาประเมิน</h2>
-          <p class="led-saleby"><b>จะทำการขายโดย</b> ${esc(dash(p.sale_type))}</p>
+          <p class="led-saleby"><b>จะทำการขายโดย</b> ${esc(dash(p.sale_type))}${mortgage}</p>
           <ul class="price-list">
             ${priceLine("ราคาประเมินของผู้เชี่ยวชาญการประเมินราคา", p.price_expert)}
             ${priceLine("ราคาประเมินของเจ้าพนักงานบังคับคดี", p.price_officer)}
@@ -146,7 +150,7 @@
           </ul>
           ${hasSplit ? "" : `<p class="led-approx">ยังไม่มีราคาแยกประเภทของทรัพย์นี้ (จะครบเมื่ออัปเดตข้อมูลรอบถัดไป) · ราคาประเมินสูงสุดที่ประกาศ <b>${money(p.appraisal_price) || "-"}</b> บาท</p>`}
           <dl class="kv-list">
-            ${field("วันที่ประกาศขึ้นเว็บ", "")}
+            ${field("วันที่ประกาศขึ้นเว็บ", p.announce_date ? beDate(p.announce_date).replace(/\//g, "-") : "")}
             ${field("หมายเหตุ", esc(dash(p.remark)))}
           </dl>
           <p class="led-approx">กรณีขายรวม ให้ตรวจสอบรายละเอียดของทุกรายการที่ขายในลำดับเดียวกัน</p>
@@ -156,7 +160,7 @@
       <section class="led-section">
         <h2 class="led-bar">เงื่อนไขผู้เข้าสู้ราคา</h2>
         <p>ผู้ประสงค์จะเข้าเสนอราคาต้องวางหลักประกันเป็นจำนวน <b>${p.deposit ? money(p.deposit) : "ไม่มี"}</b> บาท</p>
-        <p>ผู้มีสิทธิหักส่วนได้ใช้แทน หรือคู่สมรสที่ศาลอนุญาตให้กันส่วนแล้ว ต้องวางหลักประกันเป็นจำนวน <span class="kv-empty"></span> บาท</p>
+        <p>ผู้มีสิทธิหักส่วนได้ใช้แทน หรือคู่สมรสที่ศาลอนุญาตให้กันส่วนแล้ว ต้องวางหลักประกันเป็นจำนวน <b>${p.deposit_spouse ? money(p.deposit_spouse) : (p.last_seen && p.announce_date ? "ไม่มี" : '<span class="kv-empty"></span>')}</b> บาท</p>
       </section>
 
       <section class="led-section">
