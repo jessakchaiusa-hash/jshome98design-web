@@ -38,19 +38,24 @@
     <div id="savedNotMember" class="member-box" hidden>
       <p>สมัครสมาชิกฟรีเพื่อบันทึกทรัพย์ที่สนใจ แล้วกลับมาดูได้ทุกเมื่อ</p>
       <button type="button" class="btn btn-primary" data-member-signup>สมัครสมาชิก</button>
+      <button type="button" class="btn btn-ghost" data-member-login style="margin-top:8px;">เข้าสู่ระบบ</button>
     </div>
 
     <div class="property-grid" id="savedGrid"></div>
 
-    <div id="personalBox" class="member-box" hidden>
-      <h3 style="font-size:17px;margin-bottom:6px;">🔑 ลิงก์ส่วนตัว — เปิดรายการนี้บนเครื่องอื่น</h3>
-      <p class="doc-meta" style="margin-top:0;">ส่งลิงก์นี้เข้า LINE หรืออีเมลของตัวเอง แล้วเปิดจากมือถือ/คอมเครื่องอื่นได้ทันที
-        <b>อย่าส่งให้คนอื่น</b> เพราะใครมีลิงก์นี้จะเห็นและแก้รายการที่บันทึกของท่านได้</p>
-      <div class="personal-link-row">
-        <input id="personalLink" readonly />
-        <button type="button" class="btn btn-primary btn-sm" id="btnCopy">คัดลอก</button>
-        <a class="btn btn-ghost btn-sm" id="btnLine" target="_blank" rel="noopener">ส่งเข้า LINE</a>
-      </div>
+    <div id="passwordBox" class="member-box" hidden>
+      <h3 style="font-size:17px;margin-bottom:6px;" id="pwTitle">🔑 เปลี่ยนรหัสผ่าน</h3>
+      <p class="doc-meta" style="margin-top:0;">ใช้เบอร์โทร + รหัสผ่านนี้เข้าสู่ระบบบนมือถือหรือคอมเครื่องอื่น แล้วจะเห็นทรัพย์ที่บันทึกไว้ครบ</p>
+      <form id="pwForm" novalidate>
+        <label id="pwOldLabel">รหัสผ่านเดิม
+          <input name="old" type="password" autocomplete="current-password" maxlength="72" />
+        </label>
+        <label>รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)
+          <input name="new" type="password" autocomplete="new-password" minlength="8" maxlength="72" />
+        </label>
+        <button type="submit" class="btn btn-primary" id="pwBtn">บันทึกรหัสผ่าน</button>
+        <p class="member-error" id="pwMsg" role="status"></p>
+      </form>
     </div>
   </div>
 </section>
@@ -108,14 +113,11 @@
     const st = await loadSaved(true);
     const key = await memberKey();
     if (!key) {
-      grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1;">เครื่องนี้ยังไม่ได้ผูกกับบัญชี — เปิด "ลิงก์ส่วนตัว" จากเครื่องที่สมัครไว้ หรือ<a href="#" data-member-signup>สมัครด้วยเบอร์และอีเมลเดิม</a>อีกครั้ง</div>`;
+      grid.innerHTML = `<div class="state-msg" style="grid-column:1/-1;">กรุณา<a href="#" data-member-login>เข้าสู่ระบบ</a>ด้วยเบอร์โทร + รหัสผ่าน เพื่อดูทรัพย์ที่บันทึกไว้</div>`;
       return;
     }
 
-    const link = memberPersonalLink(key);
-    $("personalBox").hidden = false;
-    $("personalLink").value = link;
-    $("btnLine").href = `https://line.me/R/share?text=${encodeURIComponent("ลิงก์ส่วนตัว JS Home (ทรัพย์ที่บันทึกไว้): " + link)}`;
+    showPasswordBox(key);
 
     const items = st.items;
     if (!items.length) {
@@ -154,21 +156,54 @@
     refreshSaveButtons(grid);
   }
 
-  $("btnCopy").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText($("personalLink").value); memberToast("คัดลอกลิงก์ส่วนตัวแล้ว"); }
-    catch (e) { $("personalLink").select(); }
+  // ตั้ง/เปลี่ยนรหัสผ่าน (สมาชิกรุ่นแรกที่ยังไม่มีรหัสผ่าน → ตั้งได้เลยไม่ต้องใส่รหัสเดิม)
+  async function showPasswordBox(key) {
+    try {
+      const me = await memberRpc("member_me", { p_key: key });
+      if (!me.ok) return;
+      $("passwordBox").hidden = false;
+      $("pwOldLabel").hidden = !me.has_password;
+      $("pwTitle").textContent = me.has_password ? "🔑 เปลี่ยนรหัสผ่าน" : "🔑 ตั้งรหัสผ่าน เพื่อเข้าสู่ระบบจากเครื่องอื่น";
+    } catch (e) { console.error(e); }
+  }
+
+  $("pwForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget.elements, form = e.currentTarget, msg = $("pwMsg");
+    msg.className = "member-error";
+    msg.textContent = "";
+    if (f.new.value.length < 8) { msg.textContent = MEMBER_ERRORS.invalid_password; return; }
+    $("pwBtn").disabled = true;
+    try {
+      const m = memberStore.get();
+      const r = await memberRpc("member_set_password", { p_key: m.key, p_new: f.new.value, p_old: $("pwOldLabel").hidden ? null : f.old.value });
+      if (!r.ok) { msg.textContent = MEMBER_ERRORS[r.error] || "บันทึกไม่สำเร็จ"; return; }
+      memberStore.set({ ...m, key: r.key });
+      form.reset();
+      msg.className = "member-ok";
+      msg.textContent = "บันทึกรหัสผ่านแล้ว เครื่องอื่นที่เคยเข้าสู่ระบบไว้ต้องเข้าสู่ระบบใหม่";
+      $("pwOldLabel").hidden = false;
+    } catch (err) {
+      msg.textContent = "เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง";
+    } finally {
+      $("pwBtn").disabled = false;
+    }
   });
 
   // เลิกบันทึกจากหน้านี้ → เอาการ์ดออก
   document.addEventListener("member-saved-change", (e) => { if (!e.detail.saved) render(); });
 
+  const afterIn = () => { $("savedNotMember").hidden = true; render(); };
   if (memberStore.get()) render();
   else $("savedNotMember").hidden = false;
 
-  // สมัครจากหน้านี้เสร็จ → แสดงรายการ
+  // สมัคร/เข้าสู่ระบบจากหน้านี้เสร็จ → แสดงรายการ
   document.addEventListener("click", (e) => {
-    if (e.target.closest("[data-member-signup]")) {
-      setTimeout(() => { memberAfterSignup = () => { $("savedNotMember").hidden = true; render(); }; }, 0);
+    if (e.target.closest("[data-member-login]")) {
+      e.preventDefault();
+      openMemberModal(null, { mode: "login", after: afterIn });
+    } else if (e.target.closest("[data-member-signup]")) {
+      setTimeout(() => { memberAfterSignup = afterIn; }, 0);
     }
   });
 </script>

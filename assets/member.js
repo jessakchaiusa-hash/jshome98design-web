@@ -2,7 +2,7 @@
 // ดูรายการ/แผนที่ได้ฟรี แต่ดูรายละเอียดทรัพย์ (หน้า ธอส. / หน้ารายละเอียด LED ของเรา) และบันทึกทรัพย์ ต้องสมัครสมาชิกก่อน
 // บันทึกผ่านฟังก์ชันใน Supabase เท่านั้น — เว็บอ่านตาราง members / member_saved ไม่ได้
 // ความยินยอมการตลาดเป็นตัวเลือกแยก ไม่ติ๊กไว้ก่อน และไม่ใช่เงื่อนไขในการใช้เว็บ
-// บัญชี = access key ลับที่ได้ตอนสมัคร เก็บในเบราว์เซอร์ + "ลิงก์ส่วนตัว" (saved.html#k=...) ไว้เปิดบนเครื่องอื่น
+// บัญชี = เบอร์โทร + รหัสผ่าน (bcrypt ใน Supabase) → ล็อกอินแล้วได้ access key เก็บในเบราว์เซอร์
 
 const MEMBER_POLICY_VERSION = "1.1-draft-2026-10-16";
 const MEMBER_STORE_KEY = "jsh_member";
@@ -44,22 +44,11 @@ const MEMBER_ERRORS = {
   invalid_email: "อีเมลไม่ถูกต้อง",
   terms_required: "กรุณายอมรับข้อตกลงและนโยบายความเป็นส่วนตัว",
   rate_limited: "ส่งข้อมูลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  invalid_password: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
+  invalid: "เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง",
+  locked: "ใส่รหัสผิดหลายครั้ง บัญชีถูกล็อกชั่วคราว 15 นาที",
+  wrong_old_password: "รหัสผ่านเดิมไม่ถูกต้อง",
 };
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// เปิดจาก "ลิงก์ส่วนตัว" (#k=<key>) บนหน้าไหนก็ได้ → ผูกเครื่องนี้กับบัญชี แล้วลบ key ออกจากแถบที่อยู่
-function adoptKeyFromLink() {
-  const m = /(?:^#|&)k=([0-9a-f-]{36})/i.exec(location.hash);
-  if (!m || !UUID_RE.test(m[1])) return false;
-  const cur = memberStore.get() || {};
-  memberStore.set({ ...cur, at: cur.at || new Date().toISOString(), key: m[1].toLowerCase() });
-  history.replaceState(null, "", location.pathname + location.search);
-  return true;
-}
-adoptKeyFromLink();
-// วางลิงก์ส่วนตัวในแท็บที่เปิดหน้าเดิมอยู่แล้ว (เปลี่ยนแค่ #) → ผูกบัญชีแล้วโหลดหน้าใหม่
-window.addEventListener("hashchange", () => { if (adoptKeyFromLink()) location.reload(); });
 
 function isGatedLink(href) {
   try {
@@ -100,6 +89,27 @@ function buildMemberModal() {
   wrap.innerHTML = `
     <div class="member-modal" role="dialog" aria-modal="true" aria-labelledby="memberTitle">
       <button type="button" class="member-close" aria-label="ปิด">×</button>
+      <div class="member-tabs" role="tablist">
+        <button type="button" class="member-tab is-active" data-tab="signup" role="tab">สมัครสมาชิก</button>
+        <button type="button" class="member-tab" data-tab="login" role="tab">เข้าสู่ระบบ</button>
+      </div>
+      <div class="member-step" data-step="login" hidden>
+        <h3>เข้าสู่ระบบสมาชิก</h3>
+        <p class="member-sub">ใช้เบอร์โทรและรหัสผ่านที่ตั้งไว้ตอนสมัคร</p>
+        <form class="member-login" novalidate>
+          <label>เบอร์โทรศัพท์
+            <input name="phone" type="tel" inputmode="tel" autocomplete="username" required maxlength="20" placeholder="08X-XXX-XXXX" />
+          </label>
+          <label>รหัสผ่าน
+            <input name="password" type="password" autocomplete="current-password" required maxlength="72" />
+          </label>
+          <div class="member-error" role="alert"></div>
+          <button type="submit" class="btn btn-primary member-submit">เข้าสู่ระบบ</button>
+          <p class="member-sub member-forgot">ลืมรหัสผ่าน? ติดต่อ JS Home ที่
+            <a href="mailto:jessakchaiusa@gmail.com?subject=${encodeURIComponent("ขอรีเซ็ตรหัสผ่านสมาชิก JS Home")}">jessakchaiusa@gmail.com</a>
+            พร้อมแจ้งเบอร์โทรและอีเมลที่ใช้สมัคร</p>
+        </form>
+      </div>
       <div class="member-step" data-step="form">
         <h3 id="memberTitle">สมัครสมาชิกฟรี เพื่อดูรายละเอียดทรัพย์</h3>
         <p class="member-sub">ใช้เวลาไม่ถึง 1 นาที · ไม่มีค่าใช้จ่าย · บันทึกทรัพย์ที่สนใจไว้ดูภายหลังได้</p>
@@ -112,6 +122,9 @@ function buildMemberModal() {
           </label>
           <label>อีเมล
             <input name="email" type="email" autocomplete="email" required maxlength="254" />
+          </label>
+          <label>ตั้งรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)
+            <input name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="72" />
           </label>
           <input name="website" class="member-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
@@ -131,7 +144,7 @@ function buildMemberModal() {
         </form>
       </div>
       <div class="member-step" data-step="done" hidden>
-        <h3>สมัครเรียบร้อย ขอบคุณครับ</h3>
+        <h3 class="member-done-title">สมัครเรียบร้อย ขอบคุณครับ</h3>
         <p class="member-sub member-done-msg"></p>
         <a class="btn btn-primary member-go" href="#" rel="noopener">ไปดูรายละเอียดทรัพย์ →</a>
         <button type="button" class="btn btn-ghost member-close-2">กลับไปดูรายการ</button>
@@ -148,21 +161,34 @@ function buildMemberModal() {
     if (e.key === "Escape" && !wrap.hidden) close();
   });
   wrap.querySelector(".member-form").addEventListener("submit", submitMemberForm);
+  wrap.querySelector(".member-login").addEventListener("submit", submitLoginForm);
+  wrap.querySelectorAll(".member-tab").forEach((t) => t.addEventListener("click", () => showMemberTab(t.dataset.tab)));
   return wrap;
 }
 
-// href: ลิงก์ที่จะไปต่อหลังสมัคร · opts.after: ทำต่อหลังสมัครสำเร็จ · opts.closeHref: ปิดโดยไม่สมัคร → ไปหน้านี้
+// สลับแท็บ สมัครสมาชิก / เข้าสู่ระบบ
+function showMemberTab(tab, message = "") {
+  const login = tab === "login";
+  memberModal.querySelectorAll(".member-tab").forEach((t) => t.classList.toggle("is-active", t.dataset.tab === tab));
+  memberModal.querySelector(".member-tabs").hidden = false;
+  memberModal.querySelector('[data-step="form"]').hidden = login;
+  memberModal.querySelector('[data-step="login"]').hidden = !login;
+  memberModal.querySelector('[data-step="done"]').hidden = true;
+  memberModal.querySelectorAll(".member-error").forEach((el) => { el.textContent = ""; });
+  if (message) memberModal.querySelector(`[data-step="${login ? "login" : "form"}"] .member-error`).textContent = message;
+  memberModal.querySelector(login ? '.member-login input[name="phone"]' : 'input[name="name"]').focus();
+}
+
+// href: ลิงก์ที่จะไปต่อหลังสมัคร/ล็อกอิน · opts.after: ทำต่อเมื่อสำเร็จ · opts.closeHref: ปิดโดยไม่สมัคร → ไปหน้านี้
+// opts.mode: "signup" (ค่าเริ่มต้น) หรือ "login"
 function openMemberModal(href, opts = {}) {
   if (!memberModal) memberModal = buildMemberModal();
   memberPendingHref = href || null;
   memberAfterSignup = opts.after || null;
   memberModalCloseHref = opts.closeHref || null;
-  memberModal.querySelector('[data-step="form"]').hidden = false;
-  memberModal.querySelector('[data-step="done"]').hidden = true;
-  memberModal.querySelector(".member-error").textContent = "";
   memberModal.hidden = false;
   document.body.classList.add("member-lock");
-  memberModal.querySelector('input[name="name"]').focus();
+  showMemberTab(opts.mode === "login" ? "login" : "signup");
 }
 
 function closeMemberModal() {
@@ -183,6 +209,7 @@ async function submitMemberForm(e) {
   if (f.name.value.trim().length < 2) return (errBox.textContent = MEMBER_ERRORS.invalid_name);
   if (!/^(\+?66|0)[0-9\s-]{8,12}$/.test(f.phone.value.trim())) return (errBox.textContent = MEMBER_ERRORS.invalid_phone);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.value.trim())) return (errBox.textContent = MEMBER_ERRORS.invalid_email);
+  if (f.password.value.length < 8) return (errBox.textContent = MEMBER_ERRORS.invalid_password);
   if (!f.terms.checked) return (errBox.textContent = MEMBER_ERRORS.terms_required);
 
   btn.disabled = true;
@@ -197,27 +224,25 @@ async function submitMemberForm(e) {
       p_policy_version: MEMBER_POLICY_VERSION,
       p_source: location.pathname.split("/").pop() || "index.html",
       p_website: f.website.value,
+      p_password: f.password.value,
     });
     if (!r.ok) {
       errBox.textContent = MEMBER_ERRORS[r.error] || "บันทึกไม่สำเร็จ กรุณาลองใหม่";
       return;
     }
-    const prev = memberStore.get() || {};
-    memberStore.set({
-      at: new Date().toISOString(),
-      v: MEMBER_POLICY_VERSION,
-      token: r.token || prev.token || null,
-      key: r.key || prev.key || null,
-      marketing: r.status === "exists" ? null : f.marketing.checked,
-    });
-    savedState.loaded = null; // บัญชีอาจเปลี่ยน → โหลดรายการบันทึกใหม่
-    showMemberDone(r.status);
-    form.reset();
-    if (memberAfterSignup) {
-      const fn = memberAfterSignup;
-      memberAfterSignup = null;
-      fn();
+    // เป็นสมาชิกอยู่แล้ว → ให้ล็อกอินด้วยรหัสผ่านแทน
+    if (r.status === "has_password" || r.status === "exists") {
+      const phone = f.phone.value;
+      form.reset();
+      showMemberTab("login", r.status === "has_password"
+        ? "เบอร์นี้เป็นสมาชิกแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน"
+        : "เบอร์โทรหรืออีเมลนี้สมัครไว้แล้ว กรุณาเข้าสู่ระบบ (ลืมรหัสผ่านติดต่อแอดมินด้านล่าง)");
+      memberModal.querySelector('.member-login input[name="phone"]').value = phone;
+      memberModal.querySelector('.member-login input[name="password"]').focus();
+      return;
     }
+    memberSignedIn(r, r.status, f.marketing.checked);
+    form.reset();
   } catch (err) {
     console.error(err);
     errBox.textContent = "เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
@@ -227,12 +252,100 @@ async function submitMemberForm(e) {
   }
 }
 
+// สมัคร/ล็อกอินสำเร็จ → เก็บกุญแจบัญชีในเครื่อง แสดงหน้าสำเร็จ แล้วทำงานที่ค้างไว้ (เช่น กด ♥)
+function memberSignedIn(r, status, marketing = null) {
+  const prev = memberStore.get() || {};
+  memberStore.set({
+    at: new Date().toISOString(),
+    v: MEMBER_POLICY_VERSION,
+    token: r.token || prev.token || null,
+    key: r.key || prev.key || null,
+    name: r.name || prev.name || null,
+    marketing: marketing ?? prev.marketing ?? null,
+  });
+  savedState.loaded = null; // บัญชีอาจเปลี่ยน → โหลดรายการบันทึกใหม่
+  showMemberDone(status);
+  renderAccountButton();
+  if (memberAfterSignup) {
+    const fn = memberAfterSignup;
+    memberAfterSignup = null;
+    fn();
+  } else {
+    loadSaved(true).then(() => refreshSaveButtons());
+  }
+}
+
+async function submitLoginForm(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const errBox = form.querySelector(".member-error");
+  const btn = form.querySelector(".member-submit");
+  const f = form.elements;
+  errBox.textContent = "";
+  if (!/^(\+?66|0)[0-9\s-]{8,12}$/.test(f.phone.value.trim())) return (errBox.textContent = MEMBER_ERRORS.invalid_phone);
+  if (!f.password.value) return (errBox.textContent = MEMBER_ERRORS.invalid);
+  btn.disabled = true;
+  btn.textContent = "กำลังเข้าสู่ระบบ…";
+  try {
+    const r = await memberRpc("member_login", { p_phone: f.phone.value, p_password: f.password.value });
+    if (!r.ok) {
+      errBox.textContent = MEMBER_ERRORS[r.error] || "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่";
+      return;
+    }
+    form.reset();
+    memberSignedIn(r, "login");
+  } catch (err) {
+    console.error(err);
+    errBox.textContent = "เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "เข้าสู่ระบบ";
+  }
+}
+
+function memberLogout() {
+  try { localStorage.removeItem(MEMBER_STORE_KEY); } catch (e) { /* ข้าม */ }
+  memberStore._mem = null;
+  savedState.loaded = null;
+  savedState.set = new Set();
+  savedState.items = [];
+  memberToast("ออกจากระบบแล้ว");
+  setTimeout(() => location.reload(), 600);
+}
+
+// ปุ่มบัญชีบนหัวเว็บ: ยังไม่ล็อกอิน = "เข้าสู่ระบบ" · ล็อกอินแล้ว = ชื่อ + ออกจากระบบ
+function renderAccountButton() {
+  const head = document.querySelector(".site-header .container");
+  if (!head) return;
+  let box = head.querySelector(".member-account");
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "member-account";
+    const lastBtn = head.querySelector(":scope > .btn");
+    head.insertBefore(box, lastBtn || null);
+  }
+  const m = memberStore.get();
+  const safe = (x) => String(x).replace(/[&<>"']/g, "");
+  if (m && m.key) {
+    const first = String(m.name || "สมาชิก").split(" ")[0];
+    box.innerHTML = `<a href="saved.html" class="member-hello" title="ทรัพย์ที่บันทึก">👤 ${safe(first)}</a>
+      <button type="button" class="member-logout">ออกจากระบบ</button>`;
+    box.querySelector(".member-logout").addEventListener("click", memberLogout);
+  } else {
+    box.innerHTML = `<button type="button" class="member-login-btn">เข้าสู่ระบบ</button>`;
+    box.querySelector(".member-login-btn").addEventListener("click", () => openMemberModal(null, { mode: "login" }));
+  }
+}
+
 function showMemberDone(status) {
   const msg = {
-    created: "ตอนนี้ดูรายละเอียดและบันทึกทรัพย์ได้ทุกรายการแล้ว",
-    updated: "ยินดีต้อนรับกลับ อัปเดตข้อมูลการรับข่าวสารของท่านแล้ว",
-    exists: "เบอร์โทรหรืออีเมลนี้เป็นสมาชิกอยู่แล้ว ใช้งานต่อได้เลย",
+    created: "ตอนนี้ดูรายละเอียดและบันทึกทรัพย์ได้ทุกรายการแล้ว ครั้งหน้าเข้าสู่ระบบด้วยเบอร์โทร + รหัสผ่านได้เลย",
+    updated: "ยินดีต้อนรับกลับ ตั้งรหัสผ่านเรียบร้อย ครั้งหน้าเข้าสู่ระบบด้วยเบอร์โทร + รหัสผ่านได้เลย",
+    login: "เข้าสู่ระบบเรียบร้อย",
   }[status] || "";
+  memberModal.querySelector(".member-done-title").textContent = status === "login" ? "ยินดีต้อนรับกลับครับ" : "สมัครเรียบร้อย ขอบคุณครับ";
+  memberModal.querySelector(".member-tabs").hidden = true;
+  memberModal.querySelector('[data-step="login"]').hidden = true;
   memberModal.querySelector(".member-done-msg").textContent = msg;
   memberModalCloseHref = null;
   const go = memberModal.querySelector(".member-go");
@@ -251,10 +364,6 @@ function showMemberDone(status) {
 // ===== ทรัพย์ที่บันทึกไว้ =====
 const savedState = { loaded: null, set: new Set(), items: [] };
 const savedId = (kind, ref) => `${kind}:${ref}`;
-
-function memberPersonalLink(key) {
-  return `${location.origin}${location.pathname.replace(/[^/]*$/, "")}saved.html#k=${key}`;
-}
 
 // คืน access key ของเครื่องนี้ (สมาชิกเก่าที่มีแต่ token → ขอ key อัตโนมัติ)
 async function memberKey() {
@@ -317,8 +426,8 @@ async function toggleSaved(btn) {
   }
   const key = await memberKey();
   if (!key) {
-    memberToast("เครื่องนี้ยังไม่ได้ผูกกับบัญชี — เปิด 'ลิงก์ส่วนตัว' จากเครื่องที่สมัคร หรือสมัครด้วยเบอร์+อีเมลเดิมอีกครั้ง");
-    openMemberModal(null, { after: () => toggleSaved(btn) });
+    memberToast("กรุณาเข้าสู่ระบบด้วยเบอร์โทร + รหัสผ่าน เพื่อบันทึกทรัพย์");
+    openMemberModal(null, { mode: "login", after: () => toggleSaved(btn) });
     return;
   }
   await loadSaved();
@@ -420,3 +529,5 @@ document.addEventListener("click", (e) => {
 
 // สมาชิก → โหลดรายการที่บันทึกไว้ แล้วอัปเดตหัวใจบนหน้า
 if (memberStore.get()) loadSaved().then(() => refreshSaveButtons());
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderAccountButton);
+else renderAccountButton();
