@@ -13,4 +13,4 @@ const JSH_LINE = {
 };
 
 // ===== ฟีดทรัพย์ JS Home Exclusive (Apps Script ของระบบลิสติ้ง → ลิงก์ Web app + "?view=listings") =====
-const LISTINGS_FEED_URL = "";
+const LISTINGS_FEED_URL = "https://script.google.com/macros/s/AKfycby6itc1Ey7l2cJ84yfRySiuKD-UvNln-oNdsmTbhfetA4bhSej8T5IwEqJ09xIm3Zs9/exec?view=listings";

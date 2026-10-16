@@ -79,6 +79,18 @@
   const isSold = (s) => /ขายแล้ว|ปิดการเช่า/.test(s || "");
   const money = (v) => typeof v === "number" ? `฿${v.toLocaleString("th-TH")}` : v ? esc(v) : "";
   let ITEMS = [], typeFilter = "", query = "";
+  const FEED_CACHE_KEY = "jsh_exclusive_feed";
+
+  // ชีตสะกดประเภทได้หลายแบบ (ทาวน์เฮ้าส์ 2 ชั้น / ทาวเฮ้าส์ / ทาวน์โฮม …) → รวมเป็นกลุ่มสำหรับปุ่มกรอง
+  const TYPE_GROUPS = [
+    ["คอนโด", /คอนโด|condo/i],
+    ["ทาวน์เฮ้าส์", /ทาว|town/i],
+    ["บ้านแฝด", /แฝด/],
+    ["บ้าน", /บ้าน|วิลล่า/],
+    ["อาคารพาณิชย์ / โฮมออฟฟิศ", /อาคาร|พาณิชย์|ตึกแถว|โฮม\s?ออฟ|office/i],
+    ["ที่ดิน", /ที่ดิน/],
+  ];
+  const typeGroup = (t) => (TYPE_GROUPS.find(([, re]) => re.test(t || "")) || ["อื่นๆ"])[0];
 
   function statusTag(s) {
     if (isSold(s)) return `<span class="excl-status sold">ขายแล้ว</span>`;
@@ -119,10 +131,10 @@
 
   function render() {
     const q = query.toLowerCase();
-    const list = ITEMS.filter((p) => (!typeFilter || (p.type || "").includes(typeFilter)) &&
+    const list = ITEMS.filter((p) => (!typeFilter || typeGroup(p.type) === typeFilter) &&
       (!q || [p.code, p.name, p.location, p.type].join(" ").toLowerCase().includes(q)));
-    // พร้อมขายขึ้นก่อน · ขายแล้วไว้ท้าย
-    list.sort((a, b) => isSold(a.status) - isSold(b.status));
+    // พร้อมขายขึ้นก่อน (มีรูปก่อน) · ขายแล้วไว้ท้าย
+    list.sort((a, b) => (isSold(a.status) - isSold(b.status)) || ((b.photos || []).length > 0) - ((a.photos || []).length > 0));
     const open = list.filter((p) => !isSold(p.status)).length;
     $("exCount").textContent = `${list.length.toLocaleString("th-TH")} รายการ · พร้อมขาย ${open.toLocaleString("th-TH")}`;
     $("exGrid").innerHTML = list.length ? list.map(card).join("")
@@ -130,7 +142,8 @@
   }
 
   function renderChips() {
-    const types = [...new Set(ITEMS.map((p) => p.type).filter(Boolean))];
+    const order = TYPE_GROUPS.map(([g]) => g).concat("อื่นๆ");
+    const types = order.filter((g) => ITEMS.some((p) => typeGroup(p.type) === g));
     $("typeChips").innerHTML = ["", ...types].map((t) =>
       `<button type="button" class="recent-chip${t === typeFilter ? " is-active" : ""}" data-type="${esc(t)}">${t ? esc(t) : "ทั้งหมด"}</button>`).join("");
   }
@@ -226,15 +239,37 @@
       $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">กำลังเตรียมรายการทรัพย์ JS Home Exclusive — ทักไลน์สอบถามทรัพย์ที่พร้อมขายได้เลย</div>`;
       return;
     }
+    // ฟีดจาก Apps Script ตอบช้า (หลายวินาที) → แสดงชุดล่าสุดที่จำไว้ในเครื่องก่อน แล้วอัปเดตเมื่อฟีดมาถึง
+    let shown = false;
+    try {
+      const cached = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || "null");
+      if (cached && Array.isArray(cached.items)) { setListings(cached.items); shown = true; }
+    } catch (e) { /* ข้าม */ }
+    if (!shown) {
+      $("exCount").textContent = "กำลังโหลดรายการทรัพย์...";
+      $("exGrid").innerHTML = Array(6).fill(
+        `<div class="property-card"><div class="property-thumb skeleton"></div><div class="property-body"><div class="skeleton" style="height:16px;width:80%;border-radius:6px;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:60%;border-radius:6px;"></div></div></div>`
+      ).join("");
+    }
     try {
       const res = await fetch(feedUrl);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "feed");
-      setListings(data.items);
+      const detailOpen = !$("exDetail").hidden;
+      ITEMS = data.items;
+      renderChips();
+      render();
+      if (!shown && !detailOpen) {
+        const c = new URLSearchParams(location.search).get("c");
+        if (c) showDetail(c, false);
+      }
+      try { localStorage.setItem(FEED_CACHE_KEY, JSON.stringify({ at: Date.now(), items: data.items })); } catch (e) { /* ข้าม */ }
     } catch (e) {
       console.error(e);
-      $("exCount").textContent = "";
-      $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">โหลดรายการไม่สำเร็จ ลองรีเฟรชอีกครั้ง หรือทักไลน์สอบถามได้เลย</div>`;
+      if (!shown) {
+        $("exCount").textContent = "";
+        $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">โหลดรายการไม่สำเร็จ ลองรีเฟรชอีกครั้ง หรือทักไลน์สอบถามได้เลย</div>`;
+      }
     }
   }
   init();
