@@ -1208,3 +1208,10 @@ body.member-lock { overflow: hidden; }
 @media (max-width: 860px) {
   .source-grid, .steps-grid { grid-template-columns: 1fr; }
 }
+
+.home-search-row + .home-search-row { margin-top: 8px; }
+.home-search-row select + select { flex: 1; }
+.home-results { padding-top: 8px; }
+.home-results .result-meta { justify-content: space-between; }
+.home-results-note { margin: -4px 0 18px; color: var(--text-muted); font-size: 14.5px; }
+.home-results-note a { color: var(--green-700); text-decoration: underline; }

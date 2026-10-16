@@ -45,6 +45,20 @@
           <select name="province" id="homeProvince" aria-label="จังหวัด">
             <option value="">ทุกจังหวัด</option>
           </select>
+          <select id="homeType" aria-label="ประเภททรัพย์">
+            <option value="">ทุกประเภท</option>
+          </select>
+        </div>
+        <div class="home-search-row">
+          <select id="homePrice" aria-label="ราคา">
+            <option value="">ทุกราคา</option>
+            <option value="0-500000">ไม่เกิน 5 แสน</option>
+            <option value="500000-1000000">5 แสน – 1 ล้าน</option>
+            <option value="1000000-2000000">1 – 2 ล้าน</option>
+            <option value="2000000-3000000">2 – 3 ล้าน</option>
+            <option value="3000000-5000000">3 – 5 ล้าน</option>
+            <option value="5000000-">5 ล้านขึ้นไป</option>
+          </select>
           <button type="submit" class="btn btn-primary">ค้นหา</button>
         </div>
       </form>
@@ -78,6 +92,17 @@
         <div class="hero-visual-row"><span>บังคับคดี · ที่ดิน / บ้าน</span><b>—</b></div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="section-tight home-results" id="homeResults" hidden>
+  <div class="container">
+    <div class="result-meta">
+      <h2 id="homeResultTitle" style="font-size:22px;">ผลการค้นหา</h2>
+      <a class="btn btn-ghost btn-sm" id="homeResultMore" href="properties.html">ดูทั้งหมด + แผนที่ →</a>
+    </div>
+    <p class="home-results-note">🔒 ค้นหาและดูรายการได้ฟรี · <b>กดดูรายละเอียดทรัพย์ต้องสมัครสมาชิก (ฟรี)</b> หรือ <a href="#" data-member-login>เข้าสู่ระบบ</a></p>
+    <div class="property-grid" id="homeGrid"></div>
   </div>
 </section>
 
@@ -272,13 +297,97 @@
     document.querySelectorAll(".home-tab").forEach((x) => x.classList.toggle("is-active", x === t));
     $("search").action = searchSrc === "npa" ? "properties.html" : "led.html";
     fillProvinceSelect();
+    fillTypeSelect();
   }));
-  $("search").addEventListener("submit", (e) => {
-    if (!$("homeProvince").value) {
-      e.preventDefault();
-      location.href = searchSrc === "npa" ? "properties.html" : "led.html";
+
+  // ===== ค้นหาในหน้าแรก: แสดงผล 12 รายการแรก — การ์ดลิงก์ไปรายละเอียด (ต้องสมัคร/ล็อกอินก่อน ผ่าน member.js) =====
+  const NPA_TYPES = ["บ้านเดี่ยว", "ทาวน์เฮ้าส์", "บ้านแฝด", "คอนโด", "อาคารพาณิชย์", "ที่ดิน", "แฟลต", "อื่นๆ"];
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const thaiDate = (iso) => iso ? new Date(iso + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }) : "";
+
+  function fillTypeSelect() {
+    const list = searchSrc === "npa" ? NPA_TYPES : LED_TYPES;
+    $("homeType").innerHTML = '<option value="">ทุกประเภท</option>' + list.map((t) => `<option>${esc(t)}</option>`).join("");
+  }
+
+  function npaCard(p) {
+    const img = p.img && !p.img.includes("ghbhomecenter.com") ? p.img : "";
+    const price = p.price ? `<div class="property-price">฿${p.price.toLocaleString("th-TH")}</div>` : `<div class="property-price muted">ราคาติดต่อธนาคาร</div>`;
+    return `
+      <a class="property-card" href="${esc(p.ghb_link)}" target="_blank" rel="noopener">
+        <div class="property-thumb${img ? "" : " no-img"}">
+          <span class="property-type-tag">${esc(p.type || "ทรัพย์")}</span>
+          ${saveButtonHtml("npa", p.id, { title: p.name, price: p.price, loc: `${p.district || ""} ${p.province || ""}`.trim(), url: p.ghb_link })}
+          ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.onerror=null;this.style.display='none'" />` : ""}
+        </div>
+        <div class="property-body">
+          ${price}
+          <h4>${esc(p.name || "ไม่ระบุชื่อทรัพย์")}</h4>
+          <div class="property-loc">📍 ${esc(p.district)} ${esc(p.province)}</div>
+          <div class="property-cta">🔒 ดูรายละเอียดทรัพย์ →</div>
+        </div>
+      </a>`;
+  }
+
+  function ledCard(p) {
+    const href = `led-asset.html?p=${encodeURIComponent(p.slug)}`;
+    const snap = { title: `${p.asset_type || "ทรัพย์"} ต.${p.tambon} อ.${p.amphoe} จ.${p.province}`, price: p.appraisal_price, next: p.next_bid_date, img: p.image_url };
+    return `
+      <a class="property-card led-card" href="${href}">
+        <div class="property-thumb${p.image_url ? "" : " no-img"}">
+          <span class="property-type-tag">${esc(p.asset_type || "ทรัพย์")}</span>
+          ${p.sale_type ? `<span class="property-promo-tag">${esc(p.sale_type)}</span>` : ""}
+          ${saveButtonHtml("led", p.slug, snap)}
+          ${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy" onerror="this.onerror=null;this.style.display='none'" />` : ""}
+        </div>
+        <div class="property-body">
+          ${p.appraisal_price ? `<div class="property-price">฿${Number(p.appraisal_price).toLocaleString("th-TH")} <span class="led-price-label">ราคาประเมิน</span></div>` : ""}
+          <div class="led-next">📅 นัดขายถัดไป ${thaiDate(p.next_bid_date)}</div>
+          <div class="property-loc">📍 ต.${esc(p.tambon)} อ.${esc(p.amphoe)} จ.${esc(p.province)}</div>
+          <div class="property-cta">🔒 ดูรายละเอียดทรัพย์ →</div>
+        </div>
+      </a>`;
+  }
+
+  $("search").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const [minPrice = "", maxPrice = ""] = $("homePrice").value.split("-");
+    const province = $("homeProvince").value, type = $("homeType").value;
+    const isNpa = searchSrc === "npa";
+    const qs = province ? `?province=${encodeURIComponent(province)}` : "";
+    $("homeResultMore").href = (isNpa ? "properties.html" : "led.html") + qs;
+    $("homeResults").hidden = false;
+    $("homeGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">กำลังค้นหา...</div>`;
+    $("homeResults").scrollIntoView({ behavior: "smooth", block: "start" });
+    try {
+      const filters = isNpa ? { province, type, minPrice, maxPrice } : { province, type, minPrice, maxPrice };
+      const { data, total } = isNpa
+        ? await fetchProperties({ filters, page: 1, pageSize: 12 })
+        : await fetchLedAssets({ filters, page: 1, pageSize: 12 });
+      const label = [isNpa ? "NPA ธอส." : "ทรัพย์บังคับคดี", type, province].filter(Boolean).join(" · ");
+      $("homeResultTitle").textContent = `${label} — พบ ${fmt(total)} รายการ`;
+      if (!data.length) {
+        $("homeGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">ไม่พบทรัพย์ที่ตรงกับเงื่อนไข ลองเปลี่ยนจังหวัดหรือราคา</div>`;
+        return;
+      }
+      $("homeGrid").innerHTML = data.map(isNpa ? npaCard : ledCard).join("");
+      refreshSaveButtons($("homeGrid"));
+      recentSearches.add(isNpa ? "npa" : "led",
+        isNpa ? { province, type, price: $("homePrice").value } : { province, type, price: $("homePrice").value },
+        [type, province, $("homePrice").value ? $("homePrice").options[$("homePrice").selectedIndex].text : ""].filter(Boolean).join(" · "));
+    } catch (err) {
+      console.error(err);
+      $("homeGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">ค้นหาไม่สำเร็จ ลองใหม่อีกครั้ง</div>`;
     }
   });
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-member-login]")) {
+      e.preventDefault();
+      openMemberModal(null, { mode: "login" });
+    }
+  });
+  fillTypeSelect();
 
   async function initLanding() {
     try {
