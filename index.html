@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>JS Home | บ้านมือสอง NPA พร้อมอยู่ ราคาตรงจาก ธอส.</title>
-<meta name="description" content="ค้นหาบ้าน คอนโด ทาวน์เฮ้าส์ NPA พร้อมอยู่จากธนาคารอาคารสงเคราะห์ ทุกจังหวัดทั่วประเทศ อัปเดตทุกวัน โดย JS Home" />
+<title>JS Home | ค้นหาทรัพย์ NPA · NPL บ้านมือสอง ธอส. และทรัพย์ขายทอดตลาด กรมบังคับคดี</title>
+<meta name="description" content="ค้นหาทรัพย์ NPA ธนาคารอาคารสงเคราะห์ และทรัพย์ขายทอดตลาดกรมบังคับคดี ในที่เดียว พร้อมแผนที่ ราคาประเมิน วันนัดขาย และบันทึกทรัพย์ที่สนใจ โดย JS Home" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="assets/img/logo.png" />
@@ -24,33 +24,43 @@
       <a href="#how">ขั้นตอนการซื้อ</a>
       <a href="saved.html">♥ ที่บันทึก</a>
     </nav>
-    <a href="properties.html" class="btn btn-primary btn-sm">ดูทรัพย์ทั้งหมด</a>
+    <a href="#search" class="btn btn-primary btn-sm">ค้นหาทรัพย์</a>
   </div>
 </header>
 
 <section class="hero">
   <div class="container hero-grid">
     <div>
-      <span class="eyebrow"><span class="dot"></span> อัปเดตฐานข้อมูลทุกวัน</span>
-      <h1>บ้านมือสอง NPA<br>พร้อมอยู่ ราคาตรงจาก <span>ธอส.</span></h1>
-      <p class="lead">JS Home รวบรวมทรัพย์ธนาคารอาคารสงเคราะห์ทั่วประเทศไว้ในที่เดียว ค้นหาง่าย กรองตามจังหวัด ประเภท และงบประมาณ พร้อมลิงก์ไปยังหน้ารายละเอียด-ราคาจริงที่ ธอส. ทุกรายการ</p>
-      <div class="hero-cta">
-        <a href="properties.html" class="btn btn-primary">เริ่มค้นหาทรัพย์</a>
-        <a href="#how" class="btn btn-ghost">ดูขั้นตอนการซื้อ</a>
-      </div>
+      <span class="eyebrow"><span class="dot"></span> อัปเดตฐานข้อมูลสม่ำเสมอ</span>
+      <h1>ค้นหาทรัพย์ <span>NPA · NPL</span><br>ทั่วประเทศ ในที่เดียว</h1>
+      <p class="lead">รวมบ้านมือสอง NPA จากธนาคารอาคารสงเคราะห์ และทรัพย์ขายทอดตลาดจากกรมบังคับคดี
+        ค้นหาตามจังหวัด ประเภท และงบประมาณ ดูบนแผนที่ เช็กราคาประเมินและวันนัดขาย แล้วบันทึกทรัพย์ที่สนใจไว้ดูภายหลังได้</p>
+
+      <form class="home-search" id="search" action="properties.html">
+        <div class="home-search-tabs" role="tablist">
+          <button type="button" class="home-tab is-active" data-src="npa" role="tab">🏠 NPA ธอส.</button>
+          <button type="button" class="home-tab" data-src="led" role="tab">⚖️ ทรัพย์บังคับคดี (NPL)</button>
+        </div>
+        <div class="home-search-row">
+          <select name="province" id="homeProvince" aria-label="จังหวัด">
+            <option value="">ทุกจังหวัด</option>
+          </select>
+          <button type="submit" class="btn btn-primary">ค้นหา</button>
+        </div>
+      </form>
 
       <div class="hero-stats">
         <div>
-          <div class="stat-num" id="statTotal">–</div>
-          <div class="stat-label">ทรัพย์ทั้งหมด</div>
+          <div class="stat-num" id="statNpa">–</div>
+          <div class="stat-label">ทรัพย์ NPA ธอส.</div>
         </div>
         <div>
-          <div class="stat-num" id="statProvince">77</div>
-          <div class="stat-label">จังหวัดทั่วประเทศ</div>
+          <div class="stat-num" id="statLed">–</div>
+          <div class="stat-label">ทรัพย์บังคับคดีที่ยังมีนัดขาย</div>
         </div>
         <div>
-          <div class="stat-num">รายวัน</div>
-          <div class="stat-label">ความถี่การอัปเดต</div>
+          <div class="stat-num">ฟรี</div>
+          <div class="stat-label">สมัครสมาชิก ไม่มีค่าใช้จ่าย</div>
         </div>
       </div>
     </div>
@@ -59,46 +69,13 @@
       <div>
         <div class="hero-visual-label">ทรัพย์ในระบบขณะนี้</div>
         <div class="hero-visual-count" id="heroCount">…</div>
-        <div class="hero-visual-sub">ดึงข้อมูลสดจากฐานข้อมูล — อัปเดตล่าสุดทุกเช้า</div>
+        <div class="hero-visual-sub">รวม NPA ธอส. และทรัพย์ขายทอดตลาด กรมบังคับคดี</div>
       </div>
       <div class="hero-visual-list" id="heroTypeBreakdown">
-        <div class="hero-visual-row"><span>คอนโด</span><b>—</b></div>
-        <div class="hero-visual-row"><span>บ้านเดี่ยว / ทาวน์เฮ้าส์</span><b>—</b></div>
-        <div class="hero-visual-row"><span>ที่ดิน / อื่นๆ</span><b>—</b></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="how">
-  <div class="container">
-    <div class="section-head">
-      <span class="section-eyebrow">ทำไมต้อง JS Home</span>
-      <h2>ค้นหาทรัพย์ธนาคารได้ง่ายกว่าที่เคย</h2>
-      <p>เราไม่ได้ขายทรัพย์เอง แต่รวบรวมและเชื่อมโยงไปยังทรัพย์ NPA จริงบนเว็บไซต์ธนาคารอาคารสงเคราะห์ ทำให้คุณเห็นราคาตรงจากต้นทาง 100%</p>
-    </div>
-
-    <div class="grid-3">
-      <div class="card">
-        <div class="card-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        </div>
-        <h3>ค้นหาและกรองได้ละเอียด</h3>
-        <p>เลือกจังหวัด อำเภอ ประเภททรัพย์ หรือค้นหาจากชื่อโครงการ ระบบกรองให้ตรงใจในไม่กี่คลิก</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
-        </div>
-        <h3>ราคาตรงจากต้นทางเสมอ</h3>
-        <p>ทุกรายการเชื่อมลิงก์ไปหน้าเว็บ ธอส. โดยตรง ไม่มีการปรับราคา มั่นใจได้ว่าเห็นตัวเลขจริง</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg>
-        </div>
-        <h3>อัปเดตทุกวัน</h3>
-        <p>ฐานข้อมูลซิงก์ใหม่ทุกเช้า ทรัพย์ที่ขายไปแล้วจะถูกตัดออกโดยอัตโนมัติ</p>
+        <div class="hero-visual-row"><span>NPA · คอนโด</span><b>—</b></div>
+        <div class="hero-visual-row"><span>NPA · บ้าน / ทาวน์เฮ้าส์</span><b>—</b></div>
+        <div class="hero-visual-row"><span>บังคับคดี · ห้องชุด</span><b>—</b></div>
+        <div class="hero-visual-row"><span>บังคับคดี · ที่ดิน / บ้าน</span><b>—</b></div>
       </div>
     </div>
   </div>
@@ -107,11 +84,113 @@
 <section class="section-tight">
   <div class="container">
     <div class="section-head">
-      <span class="section-eyebrow">เลือกดูตามจังหวัด</span>
-      <h2>เริ่มค้นหาทรัพย์ในพื้นที่ที่คุณสนใจ</h2>
+      <span class="section-eyebrow">เลือกแหล่งทรัพย์</span>
+      <h2>ทรัพย์ 2 แบบ ในเว็บเดียว</h2>
     </div>
+    <div class="source-grid">
+      <a class="source-card" href="properties.html">
+        <span class="source-tag">NPA</span>
+        <h3>ทรัพย์ NPA ธนาคารอาคารสงเคราะห์</h3>
+        <p>บ้าน คอนโด ทาวน์เฮ้าส์ ที่ธนาคารถือกรรมสิทธิ์แล้ว ซื้อตรงกับธนาคาร ราคาประกาศชัดเจน มีโปรโมชันสินเชื่อ</p>
+        <ul>
+          <li>ราคาขายจาก ธอส. พร้อมราคาที่ลดลง</li>
+          <li>ดูบนแผนที่ + นำทางด้วย Google Maps</li>
+          <li>ลิงก์ไปหน้ารูป-รายละเอียดที่ ธอส.</li>
+        </ul>
+        <span class="source-cta">ค้นหาทรัพย์ NPA <b id="srcNpa"></b> →</span>
+      </a>
+      <a class="source-card led" href="led.html">
+        <span class="source-tag">NPL · ขายทอดตลาด</span>
+        <h3>ทรัพย์ขายทอดตลาด กรมบังคับคดี</h3>
+        <p>ทรัพย์จากคดีบังคับชำระหนี้ เข้าประมูลตามวันนัดขาย ราคาเริ่มต้นมักต่ำกว่าตลาด เหมาะกับนักลงทุน</p>
+        <ul>
+          <li>ราคาประเมินแยกทุกประเภท + หลักประกัน</li>
+          <li>วันนัดขายทุกนัด สถานที่ และภาระจำนอง</li>
+          <li>รายละเอียดครบในเว็บเดียว ไม่ต้องค้นใหม่</li>
+        </ul>
+        <span class="source-cta">ค้นหาทรัพย์บังคับคดี <b id="srcLed"></b> →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-eyebrow">เลือกดูตามจังหวัด</span>
+      <h2>เริ่มค้นหาในพื้นที่ที่คุณสนใจ</h2>
+    </div>
+    <h3 class="pill-head">🏠 ทรัพย์ NPA ธอส.</h3>
     <div class="pill-grid" id="provincePills">
       <span class="pill">กำลังโหลดจังหวัด…</span>
+    </div>
+    <h3 class="pill-head">⚖️ ทรัพย์บังคับคดี</h3>
+    <div class="pill-grid" id="ledPills">
+      <span class="pill">กำลังโหลดจังหวัด…</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-eyebrow">ทำไมต้อง JS Home</span>
+      <h2>หาทรัพย์ NPA · NPL ได้ง่ายกว่าที่เคย</h2>
+      <p>เราไม่ได้ขายทรัพย์เอง แต่รวบรวมข้อมูลจากธนาคารอาคารสงเคราะห์และกรมบังคับคดีไว้ในที่เดียว ค้นหาง่าย เทียบง่าย ตัดสินใจเร็วขึ้น</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+        <h3>ค้นหา + แผนที่ ในที่เดียว</h3>
+        <p>กรองจังหวัด อำเภอ ประเภท และงบประมาณ ทั้ง NPA และทรัพย์บังคับคดี แล้วดูตำแหน่งบนแผนที่ได้ทันที</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+        </div>
+        <h3>ข้อมูลจากแหล่งจริง</h3>
+        <p>ราคา NPA จาก ธอส. และราคาประเมิน วันนัดขาย หลักประกัน ภาระจำนอง ตามประกาศของกรมบังคับคดี</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.1 0 3.6 1.2 5.2 3 1.6-1.8 3.1-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>
+        </div>
+        <h3>บันทึกทรัพย์ที่สนใจ</h3>
+        <p>สมัครสมาชิกฟรี กด ♥ เก็บทรัพย์ไว้ เข้าสู่ระบบด้วยเบอร์โทร + รหัสผ่าน แล้วกลับมาดูได้ทุกเครื่อง</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-eyebrow">ขั้นตอนการซื้อ</span>
+      <h2>ซื้อ NPA กับประมูลบังคับคดี ต่างกันอย่างไร</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="steps-card">
+        <h3>🏠 ซื้อทรัพย์ NPA ธอส.</h3>
+        <ol>
+          <li>เลือกทรัพย์และนัดดูสถานที่จริง</li>
+          <li>ยื่นเสนอซื้อกับธนาคารตามราคาประกาศ</li>
+          <li>ขอสินเชื่อ (ถ้าต้องการ) และทำสัญญา</li>
+          <li>โอนกรรมสิทธิ์ที่สำนักงานที่ดิน</li>
+        </ol>
+      </div>
+      <div class="steps-card">
+        <h3>⚖️ ประมูลทรัพย์บังคับคดี</h3>
+        <ol>
+          <li>ตรวจสอบทรัพย์ ภาระจำนอง และวันนัดขาย</li>
+          <li>เตรียมหลักประกันตามประกาศ แล้วไปลงทะเบียนเข้าสู้ราคาในวันขาย</li>
+          <li>ชนะประมูล ชำระส่วนที่เหลือภายในกำหนด</li>
+          <li>รับเอกสารไปโอนกรรมสิทธิ์</li>
+        </ol>
+        <p class="steps-note">เงื่อนไขจริงให้ยึดตามประกาศของกรมบังคับคดีและสำนักงานที่รับผิดชอบเสมอ</p>
+      </div>
     </div>
   </div>
 </section>
@@ -120,10 +199,10 @@
   <div class="container">
     <div class="cta-band">
       <div>
-        <h2>พร้อมหาบ้านในฝันหรือยัง?</h2>
-        <p>เริ่มค้นหาทรัพย์ NPA ธอส. ทั่วประเทศ พร้อมลิงก์ตรงไปหน้ารายละเอียดและราคาจริง</p>
+        <h2>สมัครสมาชิกฟรี บันทึกทรัพย์ที่สนใจ</h2>
+        <p>ดูรายละเอียดทรัพย์ได้ทุกรายการ กด ♥ เก็บไว้ แล้วเข้าสู่ระบบด้วยเบอร์โทร + รหัสผ่านจากเครื่องไหนก็ได้</p>
       </div>
-      <a href="properties.html" class="btn" style="background:white; color:var(--green-800);">ดูทรัพย์ทั้งหมด →</a>
+      <a href="#" data-member-signup class="btn" style="background:white; color:var(--green-800);">สมัครสมาชิกฟรี →</a>
     </div>
   </div>
 </section>
@@ -132,7 +211,7 @@
   <div class="container">
     <div class="footer-row">
       <div class="brand" style="font-size:16px;">JS Home <span style="color:var(--text-muted);font-weight:500;font-size:12.5px;">บ้านพร้อมอยู่</span></div>
-      <div>© 2026 JS Home · ข้อมูลทรัพย์ NPA ธอส. รวบรวมเพื่อการค้นหาเท่านั้น ราคาและรายละเอียดที่ถูกต้องให้ยึดตามหน้าเว็บ ธอส. เสมอ</div>
+      <div>© 2026 JS Home · ข้อมูลรวบรวมเพื่อการค้นหาเท่านั้น ราคาและรายละเอียดให้ยึดตาม ธอส. และกรมบังคับคดีเสมอ</div>
       <div class="footer-links"><a href="#" data-member-signup>สมัครสมาชิก</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="unsubscribe.html">ยกเลิกรับข่าวสาร</a></div>
     </div>
   </div>
@@ -141,49 +220,96 @@
 <script src="assets/config.js"></script>
 <script src="assets/member.js"></script>
 <script src="assets/supabase-client.js"></script>
+<script src="assets/led-client.js"></script>
 <script>
+  const fmt = (n) => Number(n || 0).toLocaleString("th-TH");
+  const $ = (id) => document.getElementById(id);
+  let npaProvinces = [], ledProvinces = [];
+  let searchSrc = "npa";
+
+  // นับทรัพย์ LED ที่ยังมีนัดขาย (กรองประเภทได้)
+  async function ledCount(type) {
+    const q = ["next_bid_date=not.is.null"];
+    if (Array.isArray(type)) q.push(`asset_type=in.(${type.map(encodeURIComponent).join(",")})`);
+    else if (type) q.push(`asset_type=eq.${encodeURIComponent(type)}`);
+    const res = await fetch(`${LED_REST_URL}?select=slug&${q.join("&")}`, {
+      method: "HEAD",
+      headers: baseHeaders({ Prefer: "count=exact" }),
+    });
+    const range = res.headers.get("content-range");
+    return range ? parseInt(range.split("/")[1], 10) || 0 : 0;
+  }
+
+  function fillProvinceSelect() {
+    const list = searchSrc === "npa" ? npaProvinces : ledProvinces;
+    const sel = $("homeProvince");
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">ทุกจังหวัด</option>' +
+      list.map((p) => `<option${p === keep ? " selected" : ""}>${p.replace(/[<>&"]/g, "")}</option>`).join("");
+  }
+
+  function pills(el, list, page, max = 24) {
+    el.innerHTML = "";
+    list.slice(0, max).forEach((p) => {
+      const a = document.createElement("a");
+      a.className = "pill";
+      a.href = `${page}?province=${encodeURIComponent(p)}`;
+      a.textContent = p;
+      el.appendChild(a);
+    });
+    if (list.length > max) {
+      const more = document.createElement("a");
+      more.className = "pill";
+      more.href = page;
+      more.textContent = `ดูทั้งหมด ${list.length} จังหวัด →`;
+      el.appendChild(more);
+    }
+    if (!list.length) el.innerHTML = '<span class="pill">ยังไม่มีข้อมูล</span>';
+  }
+
+  document.querySelectorAll(".home-tab").forEach((t) => t.addEventListener("click", () => {
+    searchSrc = t.dataset.src;
+    document.querySelectorAll(".home-tab").forEach((x) => x.classList.toggle("is-active", x === t));
+    $("search").action = searchSrc === "npa" ? "properties.html" : "led.html";
+    fillProvinceSelect();
+  }));
+  $("search").addEventListener("submit", (e) => {
+    if (!$("homeProvince").value) {
+      e.preventDefault();
+      location.href = searchSrc === "npa" ? "properties.html" : "led.html";
+    }
+  });
+
   async function initLanding() {
     try {
-      const total = await fetchPropertyCount();
-      document.getElementById("statTotal").textContent = total.toLocaleString("th-TH");
-      document.getElementById("heroCount").textContent = total.toLocaleString("th-TH");
-
-      const [condo, house, other] = await Promise.all([
+      const [npa, condo, house, led, ledCondo, ledHouse] = await Promise.all([
+        fetchPropertyCount(),
         fetchPropertyCount({ type: "คอนโด" }),
-        // "บ้าน" = ทุกประเภทบ้านของ ธอส. (+ ค่าเก่า "บ้าน" ระหว่างเปลี่ยนข้อมูล)
         fetchPropertyCount({ type: ["บ้านเดี่ยว", "ทาวน์เฮ้าส์", "บ้านแฝด", "บ้าน"] }),
-        Promise.resolve(null),
+        ledCount(),
+        ledCount("ห้องชุด"),
+        ledCount(["ที่ดินพร้อมสิ่งปลูกสร้าง", "ที่ดินว่างเปล่า", "สิ่งปลูกสร้าง"]),
       ]);
+      $("statNpa").textContent = fmt(npa);
+      $("statLed").textContent = fmt(led);
+      $("srcNpa").textContent = `(${fmt(npa)})`;
+      $("srcLed").textContent = `(${fmt(led)})`;
+      $("heroCount").textContent = fmt(npa + led);
       const rows = document.querySelectorAll("#heroTypeBreakdown .hero-visual-row b");
-      rows[0].textContent = condo.toLocaleString("th-TH");
-      rows[1].textContent = house.toLocaleString("th-TH");
-      rows[2].textContent = Math.max(total - condo - house, 0).toLocaleString("th-TH");
+      [condo, house, ledCondo, ledHouse].forEach((n, i) => { rows[i].textContent = fmt(n); });
     } catch (e) {
-      document.getElementById("heroCount").textContent = "—";
+      $("heroCount").textContent = "—";
       console.error("โหลดสถิติไม่สำเร็จ:", e);
     }
 
     try {
-      const provinces = await fetchProvinceList();
-      const wrap = document.getElementById("provincePills");
-      wrap.innerHTML = "";
-      provinces.slice(0, 24).forEach((p) => {
-        const a = document.createElement("a");
-        a.className = "pill";
-        a.href = `properties.html?province=${encodeURIComponent(p)}`;
-        a.textContent = p;
-        wrap.appendChild(a);
-      });
-      if (provinces.length > 24) {
-        const more = document.createElement("a");
-        more.className = "pill";
-        more.href = "properties.html";
-        more.textContent = `ดูทั้งหมด ${provinces.length} จังหวัด →`;
-        wrap.appendChild(more);
-      }
+      [npaProvinces, ledProvinces] = await Promise.all([fetchProvinceList(), fetchLedDistinct("province")]);
+      fillProvinceSelect();
+      pills($("provincePills"), npaProvinces, "properties.html");
+      pills($("ledPills"), ledProvinces, "led.html");
     } catch (e) {
-      document.getElementById("provincePills").innerHTML =
-        '<span class="pill">ไม่สามารถโหลดรายชื่อจังหวัดได้</span>';
+      console.error(e);
+      $("provincePills").innerHTML = '<span class="pill">ไม่สามารถโหลดรายชื่อจังหวัดได้</span>';
     }
   }
   initLanding();
