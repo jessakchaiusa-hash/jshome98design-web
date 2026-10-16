@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ยกเลิกรับข่าวสาร | JS Home</title>
+<meta name="robots" content="noindex" />
+<meta name="referrer" content="no-referrer" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/img/logo.png" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark"><img src="assets/img/logo.png" alt="JS Home logo" /></span>
+      JS Home <span style="color:var(--text-muted);font-weight:500;font-size:14px;">บ้านพร้อมอยู่</span>
+    </a>
+    <a href="index.html" class="btn btn-ghost btn-sm">กลับหน้าแรก</a>
+  </div>
+</header>
+
+<main class="container doc-page">
+  <h1>ยกเลิกรับข่าวสาร</h1>
+  <p class="doc-meta">ถอนความยินยอมให้ JS Home ติดต่อทางการตลาด (โทร SMS อีเมล และโฆษณาออนไลน์) — ยังใช้งานเว็บไซต์ได้ตามปกติ</p>
+
+  <!-- มีลิงก์ยกเลิก (?t=token) หรือเคยสมัครจากเครื่องนี้ -->
+  <div class="member-box" id="tokenBox" hidden>
+    <p>กดปุ่มด้านล่างเพื่อหยุดรับข่าวสารจาก JS Home</p>
+    <button type="button" class="btn btn-primary" id="tokenBtn">ยืนยันยกเลิกรับข่าวสาร</button>
+    <p class="member-error" id="tokenMsg" role="status"></p>
+  </div>
+
+  <!-- ไม่มีลิงก์: ยืนยันด้วยเบอร์ + อีเมลที่ใช้สมัคร -->
+  <div class="member-box" id="contactBox">
+    <p id="contactLead">กรอกเบอร์โทรและอีเมลที่ใช้สมัครสมาชิก</p>
+    <form id="contactForm" novalidate>
+      <label>เบอร์โทรศัพท์
+        <input name="phone" type="tel" inputmode="tel" autocomplete="tel" required maxlength="20" placeholder="08X-XXX-XXXX" />
+      </label>
+      <label>อีเมล
+        <input name="email" type="email" autocomplete="email" required maxlength="254" />
+      </label>
+      <button type="submit" class="btn btn-primary" id="contactBtn">ยกเลิกรับข่าวสาร</button>
+      <p class="member-error" id="contactMsg" role="status"></p>
+    </form>
+  </div>
+
+  <p class="doc-meta">ต้องการขอลบข้อมูลหรือใช้สิทธิอื่นตาม PDPA ติดต่อ <a href="mailto:jessakchaiusa@gmail.com">jessakchaiusa@gmail.com</a>
+    · อ่าน<a href="privacy.html">นโยบายความเป็นส่วนตัว</a></p>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-row">
+      <div class="brand" style="font-size:16px;">JS Home <span style="color:var(--text-muted);font-weight:500;font-size:12.5px;">บ้านพร้อมอยู่</span></div>
+      <div class="footer-links"><a href="privacy.html">นโยบายความเป็นส่วนตัว</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/member.js"></script>
+<script>
+  const OK_TEXT = "ยกเลิกรับข่าวสารเรียบร้อย เราจะไม่ติดต่อทางการตลาดอีก และจะนำออกจากกลุ่มโฆษณาภายใน 30 วัน";
+
+  function ok(el, text) {
+    el.className = "member-ok";
+    el.textContent = text;
+  }
+
+  const urlToken = new URLSearchParams(location.search).get("t");
+  const saved = memberStore.get();
+  const token = urlToken || (saved && saved.token);
+
+  if (token) {
+    document.getElementById("tokenBox").hidden = false;
+    document.getElementById("contactLead").textContent = "หรือยืนยันด้วยเบอร์โทรและอีเมลที่ใช้สมัคร";
+  }
+
+  document.getElementById("tokenBtn").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const msg = document.getElementById("tokenMsg");
+    btn.disabled = true;
+    msg.className = "member-error";
+    msg.textContent = "";
+    try {
+      const r = await memberRpc("member_unsubscribe", { p_token: token });
+      if (r.status === "withdrawn" || r.status === "already_withdrawn") {
+        ok(msg, r.status === "withdrawn" ? OK_TEXT : "ท่านยกเลิกรับข่าวสารไว้แล้ว ไม่ต้องทำอะไรเพิ่ม");
+        btn.hidden = true;
+        if (saved && saved.token === token) memberStore.set({ ...saved, marketing: false });
+        return;
+      }
+      msg.textContent = r.status === "rate_limited"
+        ? "ทำรายการบ่อยเกินไป กรุณารอสักครู่"
+        : "ลิงก์ไม่ถูกต้องหรือหมดอายุ กรุณายืนยันด้วยเบอร์โทรและอีเมลด้านล่าง";
+    } catch (err) {
+      msg.textContent = "เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่";
+    }
+    btn.disabled = false;
+  });
+
+  document.getElementById("contactForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const f = form.elements;
+    const btn = document.getElementById("contactBtn");
+    const msg = document.getElementById("contactMsg");
+    msg.className = "member-error";
+    msg.textContent = "";
+    btn.disabled = true;
+    try {
+      const r = await memberRpc("member_unsubscribe_by_contact", { p_phone: f.phone.value, p_email: f.email.value });
+      if (r.ok) {
+        ok(msg, "ได้รับคำขอแล้ว หากเบอร์และอีเมลนี้เป็นสมาชิกที่รับข่าวสารอยู่ เราได้ยกเลิกให้เรียบร้อย");
+        form.reset();
+      } else {
+        msg.textContent = r.status === "rate_limited"
+          ? "ทำรายการบ่อยเกินไป กรุณารอสักครู่"
+          : "กรุณากรอกเบอร์โทรและอีเมลให้ถูกต้อง";
+      }
+    } catch (err) {
+      msg.textContent = "เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่";
+    }
+    btn.disabled = false;
+  });
+</script>
+
+</body>
+</html>
