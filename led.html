@@ -299,6 +299,8 @@
         cluster.addLayer(m);
         pts.push([lat, lng]);
       });
+      // แผนที่เพิ่งถูกแสดง (จากซ่อนอยู่) → ให้ Leaflet วัดขนาดใหม่ก่อน ไม่งั้นซูมผิด
+      map.invalidateSize();
       if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 14 });
       $("mapNote").textContent = `แสดง ${rows.length.toLocaleString("th-TH")} ทรัพย์บนแผนที่ · ตำแหน่งเป็นค่าประมาณระดับตำบล`;
       mapLoadedFor = sig;
