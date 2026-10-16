@@ -22,9 +22,10 @@
       JS Home <span style="color:var(--text-muted);font-weight:500;font-size:14px;">บ้านพร้อมอยู่</span>
     </a>
     <nav class="nav-links">
+      <a href="exclusive.html">JS Home Exclusive</a>
       <a href="properties.html">ทรัพย์ NPA ธอส.</a>
       <a href="led.html">ทรัพย์กรมบังคับคดี</a>
-      <a href="index.html#how">ขั้นตอนการซื้อ</a>
+      <a href="consign.html">ฝากขาย</a>
       <a href="saved.html">♥ ที่บันทึก</a>
     </nav>
     <a href="index.html" class="btn btn-ghost btn-sm">กลับหน้าแรก</a>
@@ -37,6 +38,35 @@
     <div class="section-head" style="margin-bottom:24px;">
       <span class="section-eyebrow">ทรัพย์ขายทอดตลาด</span>
       <h2>ทรัพย์กรมบังคับคดี</h2>
+    </div>
+
+    <div class="auction-banner">
+      <div><b>⚖️ มีบริการรับประมูลทรัพย์บังคับคดี</b><span>สนใจทรัพย์รายการไหน ให้ทีมงาน JS Home ช่วยดูแลการประมูลได้ — สนใจติดต่อแอดมิน</span></div>
+      <a class="btn btn-primary btn-sm" data-line="buyer">💬 ติดต่อแอดมิน</a>
+    </div>
+
+    <div class="led-notice">
+      ราคาที่แสดงคือ <b>ราคาประเมิน</b> ไม่ใช่ราคาเริ่มต้นประมูล · หมุดบนแผนที่เป็น <b>ตำแหน่งโดยประมาณ (กลางตำบล)</b>
+      · แสดงเฉพาะทรัพย์ที่ยังมีนัดขาย · ตรวจสอบรายละเอียดและเงื่อนไขที่กรมบังคับคดีก่อนเข้าประมูลทุกครั้ง
+    </div>
+
+    <div class="recent-bar" id="recentBar" hidden></div>
+
+    <div class="result-meta">
+      <span id="resultCount">กำลังโหลด...</span>
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="btnViewList" type="button">📋 รายการ</button>
+        <button class="view-toggle-btn" id="btnViewMap" type="button">🗺️ แผนที่</button>
+      </div>
+      <span id="pageInfo"></span>
+    </div>
+
+    <div class="property-grid" id="propertyGrid"></div>
+    <div class="pagination" id="pagination"></div>
+
+    <div id="mapView" style="display:none;">
+      <div id="mapNote" class="map-note"></div>
+      <div id="propertyMap"></div>
     </div>
 
     <div class="filter-bar">
@@ -80,30 +110,6 @@
       <div class="field" style="align-self:end;">
         <button class="btn btn-primary" id="fSubmit" style="width:100%;">ค้นหา</button>
       </div>
-    </div>
-
-    <div class="led-notice">
-      ราคาที่แสดงคือ <b>ราคาประเมิน</b> ไม่ใช่ราคาเริ่มต้นประมูล · หมุดบนแผนที่เป็น <b>ตำแหน่งโดยประมาณ (กลางตำบล)</b>
-      · แสดงเฉพาะทรัพย์ที่ยังมีนัดขาย · ตรวจสอบรายละเอียดและเงื่อนไขที่กรมบังคับคดีก่อนเข้าประมูลทุกครั้ง
-    </div>
-
-    <div class="recent-bar" id="recentBar" hidden></div>
-
-    <div class="result-meta">
-      <span id="resultCount">กำลังโหลด...</span>
-      <div class="view-toggle">
-        <button class="view-toggle-btn active" id="btnViewList" type="button">📋 รายการ</button>
-        <button class="view-toggle-btn" id="btnViewMap" type="button">🗺️ แผนที่</button>
-      </div>
-      <span id="pageInfo"></span>
-    </div>
-
-    <div class="property-grid" id="propertyGrid"></div>
-    <div class="pagination" id="pagination"></div>
-
-    <div id="mapView" style="display:none;">
-      <div id="mapNote" class="map-note"></div>
-      <div id="propertyMap"></div>
     </div>
 
   </div>

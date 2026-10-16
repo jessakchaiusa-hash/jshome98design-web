@@ -20,8 +20,10 @@
       JS Home <span style="color:var(--text-muted);font-weight:500;font-size:14px;">บ้านพร้อมอยู่</span>
     </a>
     <nav class="nav-links">
+      <a href="exclusive.html">JS Home Exclusive</a>
       <a href="properties.html">ทรัพย์ NPA ธอส.</a>
       <a href="led.html">ทรัพย์กรมบังคับคดี</a>
+      <a href="consign.html">ฝากขาย</a>
       <a href="saved.html">♥ ที่บันทึก</a>
     </nav>
     <a href="led.html" class="btn btn-ghost btn-sm">← กลับไปรายการ</a>
@@ -97,6 +99,10 @@
       ? `<a class="led-mapimg" href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="${label}" loading="lazy" onerror="this.closest('a').remove()" /><span>${label}</span></a>` : "";
 
     $detail.innerHTML = `
+      <div class="auction-banner">
+        <div><b>⚖️ มีบริการรับประมูลทรัพย์บังคับคดี</b><span>สนใจทรัพย์รายการไหน ให้ทีมงาน JS Home ช่วยดูแลการประมูลได้ — สนใจติดต่อแอดมิน</span></div>
+        <a class="btn btn-primary btn-sm" data-line="buyer">💬 ติดต่อแอดมิน</a>
+      </div>
       <nav class="crumbs"><a href="led.html">ทรัพย์กรมบังคับคดี</a> › <a href="led.html?province=${encodeURIComponent(p.province || "")}">${esc(p.province)}</a> › ${esc(p.amphoe)}</nav>
 
       <div class="led-head">
@@ -195,6 +201,7 @@
       </div>`;
 
     refreshSaveButtons($detail);
+    wireLineButtons($detail);
 
     if (p.lat && p.lng) {
       const map = L.map("detailMap", { scrollWheelZoom: false }).setView([p.lat, p.lng], p.geo_level === "tambon" ? 14 : 12);

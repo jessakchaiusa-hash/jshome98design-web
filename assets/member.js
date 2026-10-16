@@ -531,3 +531,24 @@ document.addEventListener("click", (e) => {
 if (memberStore.get()) loadSaved().then(() => refreshSaveButtons());
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderAccountButton);
 else renderAccountButton();
+
+// ===== ปุ่ม LINE (data-line="buyer" | "seller") — ลิงก์ตั้งที่ config.js (JSH_LINE) =====
+function jshLineUrl(kind) {
+  return (typeof JSH_LINE !== "undefined" && JSH_LINE[kind]) || "";
+}
+function wireLineButtons(root = document) {
+  root.querySelectorAll("[data-line]").forEach((a) => {
+    const url = jshLineUrl(a.dataset.line);
+    if (url) { a.href = url; a.target = "_blank"; a.rel = "noopener"; }
+    else a.href = "#";
+  });
+}
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("[data-line]");
+  if (a && !jshLineUrl(a.dataset.line)) {
+    e.preventDefault();
+    memberToast("ช่องทาง LINE กำลังจะเปิดใช้เร็วๆ นี้");
+  }
+});
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => wireLineButtons());
+else wireLineButtons();

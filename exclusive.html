@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JS Home Exclusive | บ้านพร้อมอยู่ คัดโดย JS Home</title>
+<meta name="description" content="JS Home Exclusive — บ้าน คอนโด ที่ดิน ที่ JS Home บ้านพร้อมอยู่ ประกาศขายเอง พร้อมอยู่ทันที พร้อมทีมดูแลสินเชื่อครบทุกขั้นตอน" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/img/logo.png" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <span class="brand-mark"><img src="assets/img/logo.png" alt="JS Home logo" /></span>
+      JS Home <span style="color:var(--text-muted);font-weight:500;font-size:14px;">บ้านพร้อมอยู่</span>
+    </a>
+    <nav class="nav-links">
+      <a href="exclusive.html">JS Home Exclusive</a>
+      <a href="properties.html">ทรัพย์ NPA ธอส.</a>
+      <a href="led.html">ทรัพย์กรมบังคับคดี</a>
+      <a href="consign.html">ฝากขาย</a>
+      <a href="saved.html">♥ ที่บันทึก</a>
+    </nav>
+    <a href="index.html" class="btn btn-ghost btn-sm">กลับหน้าแรก</a>
+  </div>
+</header>
+
+<section class="excl-hero">
+  <div class="container">
+    <span class="excl-badge">JS Home Exclusive</span>
+    <h1>บ้านพร้อมอยู่ คัดโดย JS Home</h1>
+    <p>ทรัพย์ที่ JS Home บ้านพร้อมอยู่ ประกาศขายเอง ตรวจสภาพแล้ว เข้าอยู่ได้ทันที
+      พร้อมทีมงานดูแลสินเชื่อให้ครบทุกขั้นตอนจนโอนกรรมสิทธิ์</p>
+    <div class="excl-hero-cta">
+      <a class="btn btn-primary" data-line="buyer">💬 สอบถาม / นัดดูบ้าน ทาง LINE</a>
+      <a class="btn btn-ghost excl-ghost" href="consign.html">🏡 ฝากขายบ้านกับเรา</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="excl-filter">
+      <div class="excl-chips" id="typeChips"></div>
+      <input id="exSearch" type="search" placeholder="ค้นหาชื่อโครงการ ทำเล หรือรหัสทรัพย์..." />
+    </div>
+    <div class="result-meta"><span id="exCount">กำลังโหลด...</span></div>
+    <div class="property-grid" id="exGrid"></div>
+  </div>
+</section>
+
+<div class="member-overlay excl-overlay" id="exDetail" hidden>
+  <div class="member-modal excl-modal" role="dialog" aria-modal="true" aria-labelledby="exTitle">
+    <button type="button" class="member-close" id="exClose" aria-label="ปิด">×</button>
+    <div id="exBody"></div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-row">
+      <div class="brand" style="font-size:16px;">JS Home <span style="color:var(--text-muted);font-weight:500;font-size:12.5px;">บ้านพร้อมอยู่</span></div>
+      <div>© 2026 JS Home บ้านพร้อมอยู่ · ราคาและสถานะอาจเปลี่ยนแปลง โปรดสอบถามทีมงานก่อนตัดสินใจ</div>
+      <div class="footer-links"><a href="consign.html">ฝากขาย</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/member.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const img = (id, w = 800) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+  const isSold = (s) => /ขายแล้ว|ปิดการเช่า/.test(s || "");
+  const money = (v) => typeof v === "number" ? `฿${v.toLocaleString("th-TH")}` : v ? esc(v) : "";
+  let ITEMS = [], typeFilter = "", query = "";
+
+  function statusTag(s) {
+    if (isSold(s)) return `<span class="excl-status sold">ขายแล้ว</span>`;
+    if (/จอง/.test(s || "")) return `<span class="excl-status booked">ติดจอง</span>`;
+    return s ? `<span class="excl-status">${esc(s.replace(/^❌/, ""))}</span>` : "";
+  }
+  function priceLine(p) {
+    if (isSold(p.status)) return `<div class="property-price muted">ขายแล้ว</div>`;
+    const parts = [];
+    if (p.price) parts.push(`<div class="property-price">${money(p.price)}</div>`);
+    if (p.rent) parts.push(`<div class="excl-rent">เช่า ${money(p.rent)}${typeof p.rent === "number" ? " /เดือน" : ""}</div>`);
+    return parts.join("") || `<div class="property-price muted">สอบถามราคา</div>`;
+  }
+  function specs(p) {
+    return [p.land && `📐 ${esc(p.land)} ตร.ว.`, p.usable && `🏠 ${esc(p.usable)} ตร.ม.`, p.beds && `🛏 ${esc(p.beds)} นอน`,
+            p.baths && `🛁 ${esc(p.baths)} น้ำ`, p.floors && `🏢 ${esc(p.floors)} ชั้น`].filter(Boolean);
+  }
+
+  function card(p) {
+    const ph = (p.photos || [])[0];
+    return `
+      <a class="property-card excl-card${isSold(p.status) ? " is-sold" : ""}" href="?c=${encodeURIComponent(p.code)}" data-code="${esc(p.code)}">
+        <div class="property-thumb${ph ? "" : " no-img"}">
+          <span class="property-type-tag">${esc(p.type || "ทรัพย์")}</span>
+          ${statusTag(p.status)}
+          ${ph ? `<img src="${img(ph, 640)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none'" />` : ""}
+        </div>
+        <div class="property-body">
+          ${priceLine(p)}
+          <h4>${esc(p.name || p.type || "ทรัพย์")}</h4>
+          ${p.location ? `<div class="property-loc">📍 ${esc(p.location)}</div>` : ""}
+          <div class="property-meta">${specs(p).map((s) => `<span>${s}</span>`).join("")}</div>
+          <div class="excl-code">รหัส ${esc(p.code)}</div>
+          <div class="property-cta">ดูรายละเอียด →</div>
+        </div>
+      </a>`;
+  }
+
+  function render() {
+    const q = query.toLowerCase();
+    const list = ITEMS.filter((p) => (!typeFilter || (p.type || "").includes(typeFilter)) &&
+      (!q || [p.code, p.name, p.location, p.type].join(" ").toLowerCase().includes(q)));
+    // พร้อมขายขึ้นก่อน · ขายแล้วไว้ท้าย
+    list.sort((a, b) => isSold(a.status) - isSold(b.status));
+    const open = list.filter((p) => !isSold(p.status)).length;
+    $("exCount").textContent = `${list.length.toLocaleString("th-TH")} รายการ · พร้อมขาย ${open.toLocaleString("th-TH")}`;
+    $("exGrid").innerHTML = list.length ? list.map(card).join("")
+      : `<div class="state-msg" style="grid-column:1/-1;">ไม่พบทรัพย์ที่ตรงกับคำค้น</div>`;
+  }
+
+  function renderChips() {
+    const types = [...new Set(ITEMS.map((p) => p.type).filter(Boolean))];
+    $("typeChips").innerHTML = ["", ...types].map((t) =>
+      `<button type="button" class="recent-chip${t === typeFilter ? " is-active" : ""}" data-type="${esc(t)}">${t ? esc(t) : "ทั้งหมด"}</button>`).join("");
+  }
+
+  function showDetail(code, push = true) {
+    const p = ITEMS.find((x) => x.code === code);
+    if (!p) return;
+    const photos = p.photos || [];
+    const sold = isSold(p.status);
+    $("exBody").innerHTML = `
+      <div class="excl-gallery">
+        <div class="excl-main${photos.length ? "" : " no-img"}">${photos.length ? `<img id="exMain" src="${img(photos[0], 1400)}" alt="" referrerpolicy="no-referrer" />` : ""}</div>
+        ${photos.length > 1 ? `<div class="excl-thumbs">${photos.map((id, i) =>
+          `<button type="button" data-ph="${esc(id)}" class="${i ? "" : "is-active"}"><img src="${img(id, 240)}" alt="" loading="lazy" referrerpolicy="no-referrer" /></button>`).join("")}</div>` : ""}
+      </div>
+      <div class="excl-detail-head">
+        <div>
+          <span class="excl-badge small">JS Home Exclusive · ${esc(p.code)}</span>
+          <h3 id="exTitle">${esc(p.name || p.type || "ทรัพย์")}</h3>
+          ${p.location ? `<div class="led-loc">📍 ${esc(p.location)}</div>` : ""}
+        </div>
+        ${statusTag(p.status)}
+      </div>
+      ${priceLine(p)}
+      <dl class="kv-list">
+        ${[["ประเภททรัพย์", p.type], ["ที่ดิน", p.land && `${p.land} ตร.ว.`], ["พื้นที่ใช้สอย", p.usable && `${p.usable} ตร.ม.`],
+           ["ห้องนอน", p.beds], ["ห้องน้ำ", p.baths], ["จำนวนชั้น", p.floors], ["สถานะ", (p.status || "").replace(/^❌/, "")]]
+          .filter(([, v]) => v).map(([k, v]) => `<div class="kv"><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}
+      </dl>
+      ${sold ? `<p class="excl-note">ทรัพย์นี้ขายแล้ว — ทักมาให้ทีมงานช่วยหาทรัพย์ใกล้เคียงได้</p>` :
+        `<p class="excl-note">✅ ทีมงาน JS Home ดูแลสินเชื่อให้ครบทุกขั้นตอน ตั้งแต่ยื่นกู้จนโอนกรรมสิทธิ์ · แจ้งรหัส <b>${esc(p.code)}</b> เมื่อทักไลน์</p>`}
+      <div class="led-actions">
+        <a class="btn btn-primary" data-line="buyer">💬 ${sold ? "ให้ช่วยหาทรัพย์ใกล้เคียง" : "สอบถาม / นัดดูบ้าน ทาง LINE"}</a>
+        <button type="button" class="btn btn-ghost" id="exShare">🔗 แชร์ทรัพย์นี้</button>
+      </div>`;
+    wireLineButtons($("exBody"));
+    $("exBody").querySelectorAll("[data-ph]").forEach((b) => b.addEventListener("click", () => {
+      $("exMain").src = img(b.dataset.ph, 1400);
+      $("exBody").querySelectorAll("[data-ph]").forEach((x) => x.classList.toggle("is-active", x === b));
+    }));
+    $("exShare").addEventListener("click", async () => {
+      const url = `${location.origin}${location.pathname}?c=${encodeURIComponent(p.code)}`;
+      try {
+        if (navigator.share) await navigator.share({ title: `${p.name || p.type} | JS Home Exclusive`, url });
+        else { await navigator.clipboard.writeText(url); memberToast("คัดลอกลิงก์แล้ว"); }
+      } catch (e) { /* ยกเลิก */ }
+    });
+    $("exDetail").hidden = false;
+    document.body.classList.add("member-lock");
+    if (push) history.pushState({ c: code }, "", `?c=${encodeURIComponent(code)}`);
+  }
+  function hideDetail(push = true) {
+    $("exDetail").hidden = true;
+    document.body.classList.remove("member-lock");
+    if (push) history.pushState({}, "", location.pathname);
+  }
+
+  $("exGrid").addEventListener("click", (e) => {
+    const a = e.target.closest("[data-code]");
+    if (!a) return;
+    e.preventDefault();
+    showDetail(a.dataset.code);
+  });
+  $("typeChips").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-type]");
+    if (!b) return;
+    typeFilter = b.dataset.type;
+    renderChips();
+    render();
+  });
+  $("exSearch").addEventListener("input", (e) => { query = e.target.value.trim(); render(); });
+  $("exClose").addEventListener("click", () => hideDetail());
+  $("exDetail").addEventListener("click", (e) => { if (e.target === $("exDetail")) hideDetail(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("exDetail").hidden) hideDetail(); });
+  window.addEventListener("popstate", () => {
+    const c = new URLSearchParams(location.search).get("c");
+    if (c) showDetail(c, false); else hideDetail(false);
+  });
+
+  // แสดงรายการ (ใช้ตอนโหลดจากฟีด และตอนทดสอบ)
+  function setListings(items) {
+    ITEMS = Array.isArray(items) ? items : [];
+    renderChips();
+    render();
+    const c = new URLSearchParams(location.search).get("c");
+    if (c) showDetail(c, false);
+  }
+
+  async function init() {
+    const feedUrl = typeof LISTINGS_FEED_URL !== "undefined" ? LISTINGS_FEED_URL : "";
+    if (!feedUrl) {
+      $("exCount").textContent = "";
+      $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">กำลังเตรียมรายการทรัพย์ JS Home Exclusive — ทักไลน์สอบถามทรัพย์ที่พร้อมขายได้เลย</div>`;
+      return;
+    }
+    try {
+      const res = await fetch(feedUrl);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "feed");
+      setListings(data.items);
+    } catch (e) {
+      console.error(e);
+      $("exCount").textContent = "";
+      $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">โหลดรายการไม่สำเร็จ ลองรีเฟรชอีกครั้ง หรือทักไลน์สอบถามได้เลย</div>`;
+    }
+  }
+  init();
+</script>
+
+</body>
+</html>

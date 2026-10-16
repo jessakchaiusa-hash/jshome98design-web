@@ -1215,3 +1215,135 @@ body.member-lock { overflow: hidden; }
 .home-results .result-meta { justify-content: space-between; }
 .home-results-note { margin: -4px 0 18px; color: var(--text-muted); font-size: 14.5px; }
 .home-results-note a { color: var(--green-700); text-decoration: underline; }
+
+/* ===== บริการรับประมูล (หน้าบังคับคดี) ===== */
+.auction-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: linear-gradient(90deg, var(--green-900), var(--green-700));
+  color: white;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.auction-banner b { display: block; font-family: var(--font-display); font-size: 19px; }
+.auction-banner span { font-size: 14.5px; opacity: 0.9; }
+.auction-banner .btn { background: var(--orange-500); flex: none; }
+.auction-banner .btn:hover { background: var(--orange-700); }
+
+/* ===== JS Home Exclusive ===== */
+.excl-hero { background: linear-gradient(135deg, var(--green-900), var(--green-700)); color: white; padding: 56px 0 48px; }
+.excl-hero h1 { font-size: clamp(28px, 4vw, 40px); margin: 10px 0 10px; }
+.excl-hero p { max-width: 640px; opacity: 0.9; font-size: 16.5px; }
+.excl-badge {
+  display: inline-block;
+  background: var(--orange-500);
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.3px;
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+.excl-badge.small { font-size: 12px; padding: 3px 10px; }
+.excl-hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+.excl-ghost { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.4); }
+.excl-ghost:hover { background: rgba(255,255,255,0.2); }
+.excl-filter { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.excl-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.recent-chip.is-active { background: var(--green-800); border-color: var(--green-800); color: white; }
+.excl-filter input {
+  flex: 0 1 340px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  background: var(--bg-panel);
+}
+.excl-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  background: var(--green-700);
+  color: white;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.excl-status.booked { background: var(--orange-500); }
+.excl-status.sold { background: #9B1C1C; }
+.excl-detail-head .excl-status { position: static; }
+.property-card.is-sold .property-thumb img { filter: grayscale(0.6); }
+.excl-rent { font-size: 14px; color: var(--green-700); font-weight: 600; }
+.excl-code { font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px; }
+.excl-modal { max-width: 760px; padding: 0 0 22px; }
+.excl-modal > div > *:not(.excl-gallery) { margin-left: 22px; margin-right: 22px; }
+.excl-modal .member-close { background: rgba(255,255,255,0.9); border-radius: 50%; z-index: 3; }
+.excl-gallery { background: var(--green-100); }
+.excl-main { aspect-ratio: 4 / 3; max-height: 60vh; display: grid; place-items: center; overflow: hidden; }
+.excl-main.no-img { aspect-ratio: 16 / 5; }
+.excl-main img { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.excl-thumbs { display: flex; gap: 6px; overflow-x: auto; padding: 8px; }
+.excl-thumbs button { flex: none; width: 72px; height: 54px; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; cursor: pointer; background: none; }
+.excl-thumbs button.is-active { border-color: var(--orange-500); }
+.excl-thumbs img { width: 100%; height: 100%; object-fit: cover; }
+.excl-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 16px !important; }
+.excl-detail-head h3 { font-size: 22px; margin-top: 6px; }
+.excl-note { background: var(--green-100); border-radius: 10px; padding: 10px 14px; font-size: 14.5px; margin-top: 14px; }
+
+/* ===== ฝากขาย ===== */
+.consign-hero { background: linear-gradient(135deg, var(--orange-700), var(--orange-500)); }
+.consign-hero .excl-badge { background: var(--green-900); }
+.consign-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.consign-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-top: 5px solid var(--green-700);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.consign-card.offer { border-top-color: var(--orange-500); }
+.consign-icon { font-size: 34px; }
+.consign-card h3 { font-size: 19px; margin: 6px 0 6px; }
+.consign-card p { color: var(--text-muted); flex: 1; }
+.consign-result { font-weight: 700; color: var(--green-800); margin: 4px 0 12px; }
+.consign-card.offer .consign-result { color: var(--orange-700); }
+.consign-card .btn { justify-content: center; }
+.consign-terms { margin: 0; padding-left: 20px; }
+.consign-terms li { margin-bottom: 8px; }
+
+/* หน้าแรก: JS Home Exclusive + ฝากขาย */
+.home-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.home-duo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: var(--radius);
+  padding: 26px;
+  color: white;
+  background: linear-gradient(135deg, var(--green-900), var(--green-700));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.home-duo-card.consign { background: linear-gradient(135deg, var(--orange-700), var(--orange-500)); }
+.home-duo-card.consign .excl-badge { background: var(--green-900); }
+.home-duo-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.home-duo-card h3 { font-size: 22px; }
+.home-duo-card p { opacity: 0.92; margin: 0 0 6px; }
+.home-duo-card .excl-badge { align-self: flex-start; }
+.home-duo-card .source-cta { color: white; }
+
+@media (max-width: 860px) {
+  .consign-grid, .home-duo { grid-template-columns: 1fr; }
+}
+
+.excl-hero .btn-primary { background: var(--orange-500); }
+.excl-hero .btn-primary:hover { background: var(--orange-700); }
