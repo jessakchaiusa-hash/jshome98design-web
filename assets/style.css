@@ -101,6 +101,69 @@ h1, h2, h3, h4 {
 
 .nav-links a:hover { color: var(--green-800); }
 
+/* ===== เมนู 3 ขีด (มือถือ) — สร้างโดย assets/nav.js ===== */
+.nav-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  padding: 11px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  cursor: pointer;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.nav-toggle span { display: block; height: 2px; border-radius: 2px; background: var(--green-800); }
+
+.mobile-nav { position: fixed; inset: 0; z-index: 1000; }
+.mobile-nav[hidden] { display: none; }
+.mobile-nav-backdrop { position: absolute; inset: 0; background: rgba(22, 36, 29, 0.45); }
+.mobile-nav-sheet {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: min(340px, 88vw);
+  background: var(--bg-panel);
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  overflow-y: auto;
+  animation: mobile-nav-in 0.2s ease-out;
+}
+@keyframes mobile-nav-in { from { transform: translateX(100%); } to { transform: none; } }
+.mobile-nav-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--font-display); font-weight: 600; color: var(--green-900);
+  margin-bottom: 12px;
+}
+.mobile-nav-close {
+  width: 40px; height: 40px; border: 0; border-radius: 10px;
+  background: var(--green-100); color: var(--green-800); font-size: 16px; cursor: pointer;
+}
+.mobile-nav-main { display: grid; gap: 10px; margin-bottom: 18px; }
+.mobile-nav-main-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text); text-decoration: none;
+}
+.mobile-nav-main-item b { display: block; font-family: var(--font-display); color: var(--green-900); font-size: 16px; }
+.mobile-nav-main-item small { display: block; color: var(--text-muted); font-size: 12.5px; }
+.mobile-nav-main-item.current { border-color: var(--green-700); background: var(--green-100); }
+.mobile-nav-icon { font-size: 24px; width: 32px; text-align: center; flex-shrink: 0; }
+.mobile-nav-more { display: grid; border-top: 1px solid var(--border); padding-top: 8px; }
+.mobile-nav-more a { padding: 12px 4px; color: var(--text); text-decoration: none; font-size: 15px; }
+.mobile-nav-more a.current { color: var(--green-800); font-weight: 600; }
+html.nav-open { overflow: hidden; }
+
+@media (max-width: 860px) {
+  .nav-toggle { display: flex; }
+  .site-header .container > .btn { display: none; }  /* ปุ่มขวาบนย้ายไปอยู่ในเมนู */
+  .site-header .container { height: 64px; }
+  .brand { font-size: 18px; }
+}
+@media (max-width: 380px) {
+  .brand > span:not(.brand-mark) { display: none; }  /* จอแคบมาก: ซ่อนคำว่า บ้านพร้อมอยู่ */
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
