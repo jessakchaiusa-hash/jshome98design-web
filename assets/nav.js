@@ -1,6 +1,5 @@
-// ===== เมนู 3 ขีดสำหรับมือถือ =====
-// สร้างปุ่ม ☰ ในหัวเว็บทุกหน้า + แผงเมนูเต็ม (เมนูชุดเดียวกันทุกหน้า แก้ที่นี่ที่เดียว)
-// จอกว้าง (> 860px) ใช้เมนูเดิมในหัวเว็บ ปุ่ม ☰ ถูกซ่อนด้วย CSS
+// ===== ปุ่ม "≡ เมนู" =====
+// สร้างปุ่มเมนูในหัวเว็บทุกหน้า + แผงเมนูเต็ม (เมนูชุดเดียวกันทุกหน้าและทุกขนาดจอ แก้ที่นี่ที่เดียว)
 
 (() => {
   const MAIN = [
@@ -64,6 +63,4 @@
   btn.addEventListener("click", () => open(panel.hidden));
   panel.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) open(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) open(false); });
-  // กลับมาจอกว้าง → ปิดแผงที่ค้างไว้
-  matchMedia("(min-width: 861px)").addEventListener("change", (e) => e.matches && open(false));
 })();
