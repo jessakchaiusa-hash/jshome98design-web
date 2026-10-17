@@ -1,5 +1,7 @@
 /* ===== JS Home — Design Tokens (อัปเดตตามโลโก้แบรนด์) ===== */
 :root {
+  /* เว็บออกแบบโทนสว่างอย่างเดียว — กันเบราว์เซอร์มือถือ (Chrome "Auto dark") กลับสีเอง จนปุ่ม/ไอคอนมองไม่เห็น */
+  color-scheme: only light;
   --green-900: #163B33;
   --green-800: #2D5B50;
   --green-700: #386F62;
@@ -102,19 +104,26 @@ h1, h2, h3, h4 {
 .nav-links a:hover { color: var(--green-800); }
 
 /* ===== เมนู 3 ขีด (มือถือ) — สร้างโดย assets/nav.js ===== */
+/* ปุ่มเขียวทึบ + เส้นขาวหนา: มองเห็นชัดแม้มือถือบังคับโหมดมืด */
 .nav-toggle {
   display: none;
-  width: 44px;
-  height: 44px;
-  padding: 11px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-panel);
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 14px 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--green-800);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13.5px;
   cursor: pointer;
-  flex-direction: column;
-  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(45, 91, 80, 0.3);
 }
-.nav-toggle span { display: block; height: 2px; border-radius: 2px; background: var(--green-800); }
+.nav-toggle:active { background: var(--green-900); }
+.nav-toggle-bars { display: flex; flex-direction: column; justify-content: space-between; width: 18px; height: 14px; }
+.nav-toggle-bars i { display: block; height: 2.5px; border-radius: 2px; background: #fff; }
 
 .mobile-nav { position: fixed; inset: 0; z-index: 1000; }
 .mobile-nav[hidden] { display: none; }
@@ -155,7 +164,15 @@ h1, h2, h3, h4 {
 html.nav-open { overflow: hidden; }
 
 @media (max-width: 860px) {
-  .nav-toggle { display: flex; }
+  .nav-toggle { display: inline-flex; }
+  /* ปุ่ม "เข้าสู่ระบบ" ให้สูงเท่าปุ่มเมนู ขอบเขียว เป็นคู่กัน */
+  .member-account button {
+    height: 40px;
+    padding: 0 14px;
+    border: 1.5px solid var(--green-800);
+    background: #fff;
+    color: var(--green-800);
+  }
   .site-header .container > .btn { display: none; }  /* ปุ่มขวาบนย้ายไปอยู่ในเมนู */
   .site-header .container { height: 64px; }
   .brand { font-size: 18px; }

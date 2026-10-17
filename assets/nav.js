@@ -28,7 +28,7 @@
   btn.setAttribute("aria-label", "เปิดเมนู");
   btn.setAttribute("aria-expanded", "false");
   btn.setAttribute("aria-controls", "mobileNav");
-  btn.innerHTML = "<span></span><span></span><span></span>";
+  btn.innerHTML = '<span class="nav-toggle-bars" aria-hidden="true"><i></i><i></i><i></i></span>เมนู';
   header.appendChild(btn);
 
   const panel = document.createElement("div");
