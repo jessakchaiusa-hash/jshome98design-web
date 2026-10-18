@@ -27,13 +27,15 @@ window.JSHExclusive = (() => {
   }
 
   // base = หน้าที่เปิดรายละเอียด ("" = หน้าเดียวกัน, "exclusive.html" = จากหน้าแรก)
-  function card(p, base = "") {
+  // featured = แสดงป้าย "⭐ แนะนำ" (ทรัพย์ในตาราง featured_listings)
+  function card(p, base = "", featured = false) {
     const ph = (p.photos || [])[0];
     return `
       <a class="property-card excl-card${isSold(p.status) ? " is-sold" : ""}" href="${base}?c=${encodeURIComponent(p.code)}" data-code="${esc(p.code)}">
         <div class="property-thumb${ph ? "" : " no-img"}">
           <span class="property-type-tag">${esc(p.type || "ทรัพย์")}</span>
           ${statusTag(p.status)}
+          ${featured ? `<span class="excl-featured">⭐ แนะนำ</span>` : ""}
           ${ph ? `<img src="${img(ph, 640)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none'" />` : ""}
         </div>
         <div class="property-body">

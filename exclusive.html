@@ -77,6 +77,9 @@
   const $ = (id) => document.getElementById(id);
   const { esc, img, isSold, statusTag, priceLine, card } = JSHExclusive;
   let ITEMS = [], typeFilter = "", query = "";
+  // รหัสทรัพย์แนะนำ (featured_listings) → ลำดับ · ปักไว้บนสุดของรายการ (ยกเว้นขายแล้ว)
+  let FEATURED = new Map();
+  const featRank = (p) => (isSold(p.status) ? undefined : FEATURED.get(String(p.code || "").trim().toUpperCase()));
 
   // ชีตสะกดประเภทได้หลายแบบ (ทาวน์เฮ้าส์ 2 ชั้น / ทาวเฮ้าส์ / ทาวน์โฮม …) → รวมเป็นกลุ่มสำหรับปุ่มกรอง
   const TYPE_GROUPS = [
@@ -94,10 +97,12 @@
     const list = ITEMS.filter((p) => (!typeFilter || typeGroup(p.type) === typeFilter) &&
       (!q || [p.code, p.name, p.location, p.type].join(" ").toLowerCase().includes(q)));
     // พร้อมขายขึ้นก่อน (มีรูปก่อน) · ขายแล้วไว้ท้าย
-    list.sort((a, b) => (isSold(a.status) - isSold(b.status)) || ((b.photos || []).length > 0) - ((a.photos || []).length > 0));
+    const rank = (p) => featRank(p) ?? Infinity;
+    list.sort((a, b) => (rank(a) - rank(b)) || (isSold(a.status) - isSold(b.status)) ||
+      ((b.photos || []).length > 0) - ((a.photos || []).length > 0));
     const open = list.filter((p) => !isSold(p.status)).length;
     $("exCount").textContent = `${list.length.toLocaleString("th-TH")} รายการ · พร้อมขาย ${open.toLocaleString("th-TH")}`;
-    $("exGrid").innerHTML = list.length ? list.map(card).join("")
+    $("exGrid").innerHTML = list.length ? list.map((p) => card(p, "", featRank(p) !== undefined)).join("")
       : `<div class="state-msg" style="grid-column:1/-1;">ไม่พบทรัพย์ที่ตรงกับคำค้น</div>`;
   }
 
@@ -205,6 +210,11 @@
     ).join("");
     // ชุดที่จำไว้ในเครื่องมาก่อน (เปิดรายละเอียดตาม ?c= ได้ทันที) → ชุดสดมาทีหลัง อัปเดตรายการโดยไม่ปิดหน้ารายละเอียด
     let shownCached = false;
+    // โหลดรหัสแนะนำคู่ขนานกับฟีด — มาถึงเมื่อไหร่ก็จัดลำดับใหม่ (โหลดไม่ได้ = แสดงตามปกติ)
+    JSHExclusive.featuredCodes().then((codes) => {
+      FEATURED = new Map(codes.map((c, i) => [c.toUpperCase(), i]));
+      if (ITEMS.length) render();
+    }).catch((e) => console.error("โหลดทรัพย์แนะนำไม่สำเร็จ:", e));
     const ok = await JSHExclusive.load((items, cached) => {
       if (cached) { setListings(items); shownCached = true; return; }
       const detailOpen = !$("exDetail").hidden;
