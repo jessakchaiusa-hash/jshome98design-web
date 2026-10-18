@@ -157,6 +157,19 @@
   </div>
 </section>
 
+<section class="section-tight home-featured" id="homeFeatured" hidden>
+  <div class="container">
+    <div class="section-head home-featured-head">
+      <div>
+        <span class="section-eyebrow">⭐ ทรัพย์แนะนำ</span>
+        <h2>บ้านพร้อมอยู่ คัดโดย JS Home</h2>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="exclusive.html">ดูทั้งหมด →</a>
+    </div>
+    <div class="property-grid" id="featuredGrid"></div>
+  </div>
+</section>
+
 <section class="section-tight">
   <div class="container">
     <div class="home-duo">
@@ -266,6 +279,7 @@
 <script src="assets/member.js"></script>
 <script src="assets/supabase-client.js"></script>
 <script src="assets/led-client.js"></script>
+<script src="assets/exclusive-feed.js"></script>
 <script>
   const fmt = (n) => Number(n || 0).toLocaleString("th-TH");
   const $ = (id) => document.getElementById(id);
@@ -442,6 +456,24 @@
     }
   }
   initLanding();
+
+  // ===== ทรัพย์แนะนำ (ปักหมุด) — รหัสจากตาราง featured_listings ใน Supabase, ข้อมูลทรัพย์จากฟีดลิสติ้ง =====
+  // แสดงสูงสุด 10 รายการตามลำดับ sort_order · ข้ามทรัพย์ที่ขายแล้ว / หารหัสไม่เจอ · ไม่มีรายการ = ซ่อนทั้งส่วน
+  const FEATURED_MAX = 10;
+  async function initFeatured() {
+    let codes;
+    try { codes = await JSHExclusive.featuredCodes(); } catch (e) { console.error("โหลดทรัพย์แนะนำไม่สำเร็จ:", e); return; }
+    if (!codes.length) return;
+    const norm = (c) => String(c || "").trim().toUpperCase();
+    await JSHExclusive.load((items) => {
+      const byCode = new Map(items.map((p) => [norm(p.code), p]));
+      const picks = codes.map((c) => byCode.get(norm(c)))
+        .filter((p) => p && !JSHExclusive.isSold(p.status)).slice(0, FEATURED_MAX);
+      $("homeFeatured").hidden = !picks.length;
+      $("featuredGrid").innerHTML = picks.map((p) => JSHExclusive.card(p, "exclusive.html")).join("");
+    });
+  }
+  initFeatured();
 </script>
 
 <script src="assets/nav.js"></script>

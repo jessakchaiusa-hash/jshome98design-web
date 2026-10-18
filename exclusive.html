@@ -72,14 +72,11 @@
 
 <script src="assets/config.js"></script>
 <script src="assets/member.js"></script>
+<script src="assets/exclusive-feed.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const img = (id, w = 800) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
-  const isSold = (s) => /ขายแล้ว|ปิดการเช่า/.test(s || "");
-  const money = (v) => typeof v === "number" ? `฿${v.toLocaleString("th-TH")}` : v ? esc(v) : "";
+  const { esc, img, isSold, statusTag, priceLine, card } = JSHExclusive;
   let ITEMS = [], typeFilter = "", query = "";
-  const FEED_CACHE_KEY = "jsh_exclusive_feed";
 
   // ชีตสะกดประเภทได้หลายแบบ (ทาวน์เฮ้าส์ 2 ชั้น / ทาวเฮ้าส์ / ทาวน์โฮม …) → รวมเป็นกลุ่มสำหรับปุ่มกรอง
   const TYPE_GROUPS = [
@@ -91,43 +88,6 @@
     ["ที่ดิน", /ที่ดิน/],
   ];
   const typeGroup = (t) => (TYPE_GROUPS.find(([, re]) => re.test(t || "")) || ["อื่นๆ"])[0];
-
-  function statusTag(s) {
-    if (isSold(s)) return `<span class="excl-status sold">ขายแล้ว</span>`;
-    if (/จอง/.test(s || "")) return `<span class="excl-status booked">ติดจอง</span>`;
-    return s ? `<span class="excl-status">${esc(s.replace(/^❌/, ""))}</span>` : "";
-  }
-  function priceLine(p) {
-    if (isSold(p.status)) return `<div class="property-price muted">ขายแล้ว</div>`;
-    const parts = [];
-    if (p.price) parts.push(`<div class="property-price">${money(p.price)}</div>`);
-    if (p.rent) parts.push(`<div class="excl-rent">เช่า ${money(p.rent)}${typeof p.rent === "number" ? " /เดือน" : ""}</div>`);
-    return parts.join("") || `<div class="property-price muted">สอบถามราคา</div>`;
-  }
-  function specs(p) {
-    return [p.land && `📐 ${esc(p.land)} ตร.ว.`, p.usable && `🏠 ${esc(p.usable)} ตร.ม.`, p.beds && `🛏 ${esc(p.beds)} นอน`,
-            p.baths && `🛁 ${esc(p.baths)} น้ำ`, p.floors && `🏢 ${esc(p.floors)} ชั้น`].filter(Boolean);
-  }
-
-  function card(p) {
-    const ph = (p.photos || [])[0];
-    return `
-      <a class="property-card excl-card${isSold(p.status) ? " is-sold" : ""}" href="?c=${encodeURIComponent(p.code)}" data-code="${esc(p.code)}">
-        <div class="property-thumb${ph ? "" : " no-img"}">
-          <span class="property-type-tag">${esc(p.type || "ทรัพย์")}</span>
-          ${statusTag(p.status)}
-          ${ph ? `<img src="${img(ph, 640)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.style.display='none'" />` : ""}
-        </div>
-        <div class="property-body">
-          ${priceLine(p)}
-          <h4>${esc(p.name || p.type || "ทรัพย์")}</h4>
-          ${p.location ? `<div class="property-loc">📍 ${esc(p.location)}</div>` : ""}
-          <div class="property-meta">${specs(p).map((s) => `<span>${s}</span>`).join("")}</div>
-          <div class="excl-code">รหัส ${esc(p.code)}</div>
-          <div class="property-cta">ดูรายละเอียด →</div>
-        </div>
-      </a>`;
-  }
 
   function render() {
     const q = query.toLowerCase();
@@ -239,37 +199,26 @@
       $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">กำลังเตรียมรายการทรัพย์ JS Home Exclusive — ทักไลน์สอบถามทรัพย์ที่พร้อมขายได้เลย</div>`;
       return;
     }
-    // ฟีดจาก Apps Script ตอบช้า (หลายวินาที) → แสดงชุดล่าสุดที่จำไว้ในเครื่องก่อน แล้วอัปเดตเมื่อฟีดมาถึง
-    let shown = false;
-    try {
-      const cached = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || "null");
-      if (cached && Array.isArray(cached.items)) { setListings(cached.items); shown = true; }
-    } catch (e) { /* ข้าม */ }
-    if (!shown) {
-      $("exCount").textContent = "กำลังโหลดรายการทรัพย์...";
-      $("exGrid").innerHTML = Array(6).fill(
-        `<div class="property-card"><div class="property-thumb skeleton"></div><div class="property-body"><div class="skeleton" style="height:16px;width:80%;border-radius:6px;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:60%;border-radius:6px;"></div></div></div>`
-      ).join("");
-    }
-    try {
-      const res = await fetch(feedUrl);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "feed");
+    $("exCount").textContent = "กำลังโหลดรายการทรัพย์...";
+    $("exGrid").innerHTML = Array(6).fill(
+      `<div class="property-card"><div class="property-thumb skeleton"></div><div class="property-body"><div class="skeleton" style="height:16px;width:80%;border-radius:6px;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:60%;border-radius:6px;"></div></div></div>`
+    ).join("");
+    // ชุดที่จำไว้ในเครื่องมาก่อน (เปิดรายละเอียดตาม ?c= ได้ทันที) → ชุดสดมาทีหลัง อัปเดตรายการโดยไม่ปิดหน้ารายละเอียด
+    let shownCached = false;
+    const ok = await JSHExclusive.load((items, cached) => {
+      if (cached) { setListings(items); shownCached = true; return; }
       const detailOpen = !$("exDetail").hidden;
-      ITEMS = data.items;
+      ITEMS = items;
       renderChips();
       render();
-      if (!shown && !detailOpen) {
+      if (!shownCached && !detailOpen) {
         const c = new URLSearchParams(location.search).get("c");
         if (c) showDetail(c, false);
       }
-      try { localStorage.setItem(FEED_CACHE_KEY, JSON.stringify({ at: Date.now(), items: data.items })); } catch (e) { /* ข้าม */ }
-    } catch (e) {
-      console.error(e);
-      if (!shown) {
-        $("exCount").textContent = "";
-        $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">โหลดรายการไม่สำเร็จ ลองรีเฟรชอีกครั้ง หรือทักไลน์สอบถามได้เลย</div>`;
-      }
+    });
+    if (!ok) {
+      $("exCount").textContent = "";
+      $("exGrid").innerHTML = `<div class="state-msg" style="grid-column:1/-1;">โหลดรายการไม่สำเร็จ ลองรีเฟรชอีกครั้ง หรือทักไลน์สอบถามได้เลย</div>`;
     }
   }
   init();

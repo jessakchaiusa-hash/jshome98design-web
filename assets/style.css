@@ -1433,3 +1433,8 @@ body.member-lock { overflow: hidden; }
 
 .excl-hero .btn-primary { background: var(--orange-500); }
 .excl-hero .btn-primary:hover { background: var(--orange-700); }
+
+/* ===== ทรัพย์แนะนำบนหน้าแรก (featured_listings) ===== */
+.home-featured[hidden] { display: none; }
+.home-featured-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.home-featured-head h2 { margin: 0; }
