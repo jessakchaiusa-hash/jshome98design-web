@@ -134,7 +134,7 @@
       </div>
       ${priceLine(p)}
       <dl class="kv-list">
-        ${[["ประเภททรัพย์", p.type], ["ที่ดิน", p.land && `${p.land} ตร.ว.`], ["พื้นที่ใช้สอย", p.usable && `${p.usable} ตร.ม.`],
+        ${[["ประเภททรัพย์", p.type], ["ที่ดิน", JSHExclusive.landLabel(p)], ["พื้นที่ใช้สอย", p.usable && `${p.usable} ตร.ม.`],
            ["ห้องนอน", p.beds], ["ห้องน้ำ", p.baths], ["จำนวนชั้น", p.floors], ["สถานะ", (p.status || "").replace(/^❌/, "")]]
           .filter(([, v]) => v).map(([k, v]) => `<div class="kv"><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}
       </dl>

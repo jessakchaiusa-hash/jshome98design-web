@@ -21,8 +21,11 @@ window.JSHExclusive = (() => {
     if (p.rent) parts.push(`<div class="excl-rent">เช่า ${money(p.rent)}${typeof p.rent === "number" ? " /เดือน" : ""}</div>`);
     return parts.join("") || `<div class="property-price muted">สอบถามราคา</div>`;
   }
+  // ที่ดินแบบโฉนด: ฟีดส่ง landText มาแล้ว ("1 ไร่ 2 งาน 50 ตร.ว.") · ฟีดรุ่นเก่ามีแค่ land (ตร.ว. รวม)
+  const landLabel = (p) => p.landText || (p.land ? `${p.land} ตร.ว.` : "");
+
   function specs(p) {
-    return [p.land && `📐 ${esc(p.land)} ตร.ว.`, p.usable && `🏠 ${esc(p.usable)} ตร.ม.`, p.beds && `🛏 ${esc(p.beds)} นอน`,
+    return [landLabel(p) && `📐 ${esc(landLabel(p))}`, p.usable && `🏠 ${esc(p.usable)} ตร.ม.`, p.beds && `🛏 ${esc(p.beds)} นอน`,
             p.baths && `🛁 ${esc(p.baths)} น้ำ`, p.floors && `🏢 ${esc(p.floors)} ชั้น`].filter(Boolean);
   }
 
@@ -80,5 +83,5 @@ window.JSHExclusive = (() => {
     return (await res.json()).map((r) => String(r.code || "").trim()).filter(Boolean);
   }
 
-  return { esc, img, isSold, money, statusTag, priceLine, specs, card, load, featuredCodes, FEED_CACHE_KEY };
+  return { esc, img, isSold, money, statusTag, priceLine, specs, landLabel, card, load, featuredCodes, FEED_CACHE_KEY };
 })();
